@@ -11,6 +11,7 @@ if (!fs.existsSync(EXCEL_DIR)) {
 }
 
 function getExistingExcelFilePath(blockName, subject, grade) {
+  // Clean and format inputs safely
   const safeBlock = (blockName || 'General').toString().trim();
   const safeSubject = (subject || 'PHYSICS').toString().trim().toUpperCase();
   const safeGrade = (grade || '10').toString().replace(/^Grade\s*/i, '').trim();
@@ -19,21 +20,21 @@ function getExistingExcelFilePath(blockName, subject, grade) {
     fs.mkdirSync(EXCEL_DIR, { recursive: true });
   }
 
-  let fileName = '';
+  // Create a unique filename for EVERY block (e.g., Anmol_PHYSICS_Grade 6.xlsx, Sunrise_PHYSICS_Grade 6.xlsx)
+  const blockPrefix = safeBlock.toUpperCase() === 'GENERAL' || !safeBlock ? 'General' : safeBlock;
+  const fileName = `${blockPrefix}_${safeSubject}_Grade ${safeGrade}.xlsx`;
 
-  if (safeBlock.toUpperCase() === 'KAILASH') {
-    fileName = `Kailash_${safeSubject}_Grade ${safeGrade}.xlsx`;
-  } else {
-    fileName = `General_${safeSubject}_Grade ${safeGrade}.xlsx`;
-  }
+  const filePath = path.join(EXCEL_DIR, fileName);
 
-  const primaryPath = path.join(EXCEL_DIR, fileName);
-  if (!fs.existsSync(primaryPath) && safeBlock.toUpperCase() === 'KAILASH') {
+  // If the specific block file doesn't exist yet, copy the General template as a starting point
+  if (!fs.existsSync(filePath) && blockPrefix !== 'General') {
     const generalPath = path.join(EXCEL_DIR, `General_${safeSubject}_Grade ${safeGrade}.xlsx`);
-    if (fs.existsSync(generalPath)) return generalPath;
+    if (fs.existsSync(generalPath)) {
+      fs.copyFileSync(generalPath, filePath);
+    }
   }
 
-  return primaryPath;
+  return filePath;
 }
 
 // Helper to determine the correct 4th column header per subject
