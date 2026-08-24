@@ -50,13 +50,19 @@ export default function TeacherYearPlanDashboard() {
           const fetchedPlan = res.data.yearPlan || res.data || [];
           const processedPlan = fetchedPlan.map(row => ({
             ...row,
-            status: row.status && row.status.trim() !== '' ? row.status : 'NONE',
-            section1: row.section1 && row.section1.trim() !== '' ? row.section1 : 'NOT ASSIGNED',
-            section2: row.section2 && row.section2.trim() !== '' ? row.section2 : 'NOT ASSIGNED',
-            section3: row.section3 && row.section3.trim() !== '' ? row.section3 : 'NOT ASSIGNED',
-            section4: row.section4 && row.section4.trim() !== '' ? row.section4 : 'NOT ASSIGNED',
-            section5: row.section5 && row.section5.trim() !== '' ? row.section5 : 'NOT ASSIGNED',
-            section6: row.section6 && row.section6.trim() !== '' ? row.section6 : 'NOT ASSIGNED'
+            ncertStatus: row.ncertStatus && row.ncertStatus.trim() !== '' ? row.ncertStatus : 'Not Started',
+            iitStatus: row.iitStatus && row.iitStatus.trim() !== '' ? row.iitStatus : 'Not Started',
+            
+            section1: row.section1 && row.section1.trim() !== '' ? row.section1 : 'Not Started',
+            section2: row.section2 && row.section2.trim() !== '' ? row.section2 : 'Not Started',
+            section3: row.section3 && row.section3.trim() !== '' ? row.section3 : 'Not Started',
+            section4: row.section4 && row.section4.trim() !== '' ? row.section4 : 'Not Started',
+            section5: row.section5 && row.section5.trim() !== '' ? row.section5 : 'Not Started',
+            section6: row.section6 && row.section6.trim() !== '' ? row.section6 : 'Not Started',
+
+            iitSection1: row.iitSection1 && row.iitSection1.trim() !== '' ? row.iitSection1 : 'Not Started',
+            iitSection2: row.iitSection2 && row.iitSection2.trim() !== '' ? row.iitSection2 : 'Not Started',
+            iitSection3: row.iitSection3 && row.iitSection3.trim() !== '' ? row.iitSection3 : 'Not Started'
           }));
           setYearPlan(processedPlan);
           setLoading(false);
@@ -99,16 +105,16 @@ export default function TeacherYearPlanDashboard() {
     setMessage('');
   };
 
-  // --- ANALYTICS CALCULATIONS ---
+  // --- ANALYTICS CALCULATIONS (NCERT Track) ---
   const totalEntries = yearPlan.length;
 
   const completedCount = yearPlan.filter(row => 
-    row.status && row.status.trim().toUpperCase() === 'COMPLETED'
+    row.ncertStatus && row.ncertStatus.trim().toUpperCase() === 'COMPLETED'
   ).length;
 
   const inProgressCount = yearPlan.filter(row => {
-    const s = row.status ? row.status.trim().toUpperCase() : '';
-    return s === 'IN PROCESS' || s === 'IN-PROGRESS' || s === 'INPROGRESS';
+    const s = row.ncertStatus ? row.ncertStatus.trim().toUpperCase() : '';
+    return s === 'IN PROCESS' || s === 'IN PROGRESS' || s === 'IN-PROGRESS';
   }).length;
 
   const pendingCount = totalEntries - (completedCount + inProgressCount);
@@ -122,17 +128,20 @@ export default function TeacherYearPlanDashboard() {
 
     const exportData = yearPlan.map((row, idx) => ({
       '#': idx + 1,
-      'Month': row.month || '',
-      'NCERT Syllabus': row.ncertSyllabus || '',
-      'Assessments': row.assessments || '',
-      'IIT Syllabus': row.iitSyllabus || '',
-      'Section-1': row.section1 || '',
-      'Section-2': row.section2 || '',
-      'Section-3': row.section3 || '',
-      'Section-4': row.section4 || '',
-      'Section-5': row.section5 || '',
-      'Section-6': row.section6 || '',
-      'Status': row.status || ''
+      'MONTH': row.month || '',
+      'NCERT SYLLABUS': row.ncertSyllabus || '',
+      'NCERT_SEC-1': row.section1 || '',
+      'NCERT_SEC-2': row.section2 || '',
+      'NCERT_SEC-3': row.section3 || '',
+      'NCERT_SEC-4': row.section4 || '',
+      'NCERT_SEC-5': row.section5 || '',
+      'NCERT_SEC-6': row.section6 || '',
+      'NCERT_STATUS': row.ncertStatus || '',
+      'IIT SYLLABUS': row.iitSyllabus || '',
+      'IIT_SEC-1': row.iitSection1 || '',
+      'IIT_SEC-2': row.iitSection2 || '',
+      'IIT_SEC-3': row.iitSection3 || '',
+      'IIT STATUS': row.iitStatus || ''
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -164,15 +173,15 @@ export default function TeacherYearPlanDashboard() {
       background: bg,
       fontWeight: 'bold',
       color: color,
-      fontSize: '0.8rem'
+      fontSize: '0.75rem'
     };
   };
 
   const assignmentsList = selectedTeacherObj?.assignments || [];
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'Segoe UI, sans-serif', maxWidth: '1400px', margin: '0 auto' }}>
-      <h2>👀 Teacher Year Plan Dashboard (View Only)</h2>
+    <div style={{ padding: '2rem', fontFamily: 'Segoe UI, sans-serif', maxWidth: '1700px', margin: '0 auto' }}>
+      <h2>👀 Teacher Year Plan Dashboard (Dual Track Sections)</h2>
 
       {/* Filter Controls */}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center', background: '#f8f9fa', padding: '1.5rem', borderRadius: '8px', border: '1px solid #dfe6e9' }}>
@@ -256,7 +265,7 @@ export default function TeacherYearPlanDashboard() {
           {/* Analytics Summary Card */}
           <div style={{ background: '#ffffff', padding: '20px', borderRadius: '8px', border: '1px solid #dfe6e9', marginBottom: '1.5rem', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
-              <h3 style={{ margin: 0, color: '#2d3436', fontSize: '1.1rem' }}>📈 Year Plan Analytics & Progress Summary</h3>
+              <h3 style={{ margin: 0, color: '#2d3436', fontSize: '1.1rem' }}>📈 NCERT Track Analytics & Progress Summary</h3>
               <button
                 onClick={handleExportExcel}
                 style={{ padding: '0.5rem 1.2rem', background: '#00b894', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}
@@ -285,7 +294,7 @@ export default function TeacherYearPlanDashboard() {
             {/* Progress Bar Chart */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#666', marginBottom: '5px' }}>
-                <span>Overall Completion Distribution</span>
+                <span>Overall NCERT Completion Distribution</span>
                 <span>Total Entries: {totalEntries}</span>
               </div>
               
@@ -307,52 +316,71 @@ export default function TeacherYearPlanDashboard() {
           <div style={{ overflowX: 'auto', marginBottom: '1.5rem' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
               <thead>
-                <tr style={{ background: '#2d3436', color: '#fff', textAlign: 'left' }}>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>#</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Month</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>NCERT Syllabus</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Assessments</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>IIT Syllabus</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Section-1</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Section-2</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Section-3</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Section-4</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Section-5</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Section-6</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Status</th>
+                <tr style={{ background: '#2d3436', color: '#fff', textAlign: 'left', fontSize: '0.85rem' }}>
+                  <th style={{ padding: '8px', border: '1px solid #ddd' }}>#</th>
+                  <th style={{ padding: '8px', border: '1px solid #ddd' }}>Month</th>
+                  <th style={{ padding: '8px', border: '1px solid #ddd' }}>NCERT Syllabus</th>
+                  <th style={{ padding: '8px', border: '1px solid #ddd' }}>NCERT_SEC-1</th>
+                  <th style={{ padding: '8px', border: '1px solid #ddd' }}>NCERT_SEC-2</th>
+                  <th style={{ padding: '8px', border: '1px solid #ddd' }}>NCERT_SEC-3</th>
+                  <th style={{ padding: '8px', border: '1px solid #ddd' }}>NCERT_SEC-4</th>
+                  <th style={{ padding: '8px', border: '1px solid #ddd' }}>NCERT_SEC-5</th>
+                  <th style={{ padding: '8px', border: '1px solid #ddd' }}>NCERT_SEC-6</th>
+                  <th style={{ padding: '8px', border: '1px solid #ddd' }}>NCERT_STATUS</th>
+                  <th style={{ padding: '8px', border: '1px solid #ddd' }}>IIT Syllabus</th>
+                  <th style={{ padding: '8px', border: '1px solid #ddd' }}>IIT_SEC-1</th>
+                  <th style={{ padding: '8px', border: '1px solid #ddd' }}>IIT_SEC-2</th>
+                  <th style={{ padding: '8px', border: '1px solid #ddd' }}>IIT_SEC-3</th>
+                  <th style={{ padding: '8px', border: '1px solid #ddd' }}>IIT STATUS</th>
                 </tr>
               </thead>
               <tbody>
                 {yearPlan.map((row, index) => {
-                  const statusVal = row.status ? row.status.trim().toUpperCase() : 'NONE';
+                  const statusVal = row.ncertStatus ? row.ncertStatus.trim().toUpperCase() : '';
                   let rowBg = 'transparent';
                   if (statusVal === 'COMPLETED') rowBg = '#f1f8e9';
-                  if (statusVal.includes('PROGRESS')) rowBg = '#fffde7';
+                  if (statusVal.includes('PROGRESS') || statusVal.includes('PROCESS')) rowBg = '#fffde7';
 
                   return (
                     <tr key={index} style={{ borderBottom: '1px solid #ddd', background: rowBg }}>
-                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>{index + 1}</td>
+                      <td style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'center' }}>{index + 1}</td>
+                      <td style={{ padding: '6px', border: '1px solid #ddd', fontWeight: 'bold', background: '#f9f9f9', fontSize: '0.85rem' }}>{row.month || '-'}</td>
                       
-                      {/* Text Fields */}
-                      {['month', 'ncertSyllabus', 'assessments', 'iitSyllabus'].map((field) => (
-                        <td key={field} style={{ padding: '8px', border: '1px solid #ddd', fontSize: '0.85rem' }}>
-                          {row[field] || '-'}
-                        </td>
-                      ))}
+                      {/* NCERT Syllabus */}
+                      <td style={{ padding: '6px', border: '1px solid #ddd', fontSize: '0.8rem' }}>{row.ncertSyllabus || '-'}</td>
 
-                      {/* Section Badges */}
+                      {/* NCERT Sections 1 to 6 */}
                       {['section1', 'section2', 'section3', 'section4', 'section5', 'section6'].map((secField) => (
-                        <td key={secField} style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>
+                        <td key={secField} style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'center' }}>
                           <span style={getBadgeStyle(row[secField])}>
-                            {row[secField] || 'NOT ASSIGNED'}
+                            {row[secField] || 'Not Started'}
                           </span>
                         </td>
                       ))}
 
-                      {/* Status Badge */}
-                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>
-                        <span style={getBadgeStyle(row.status)}>
-                          {row.status || 'NONE'}
+                      {/* NCERT Status */}
+                      <td style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'center' }}>
+                        <span style={getBadgeStyle(row.ncertStatus)}>
+                          {row.ncertStatus || 'Not Started'}
+                        </span>
+                      </td>
+
+                      {/* IIT Syllabus */}
+                      <td style={{ padding: '6px', border: '1px solid #ddd', fontSize: '0.8rem' }}>{row.iitSyllabus || '-'}</td>
+
+                      {/* IIT Sections 1 to 3 */}
+                      {['iitSection1', 'iitSection2', 'iitSection3'].map((secField) => (
+                        <td key={secField} style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'center' }}>
+                          <span style={getBadgeStyle(row[secField])}>
+                            {row[secField] || 'Not Started'}
+                          </span>
+                        </td>
+                      ))}
+
+                      {/* IIT Status */}
+                      <td style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'center' }}>
+                        <span style={getBadgeStyle(row.iitStatus)}>
+                          {row.iitStatus || 'Not Started'}
                         </span>
                       </td>
                     </tr>
