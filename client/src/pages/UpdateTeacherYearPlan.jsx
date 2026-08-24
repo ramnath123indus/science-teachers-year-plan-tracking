@@ -135,17 +135,17 @@ export default function UpdateTeacherYearPlan({ teacherData, onNavigate }) {
         )}
       </div>
 
-      {/* Teacher Profile Details Banner (Email removed) */}
+      {/* Teacher Profile Banner with Teacher Name Prominently Displayed */}
       <div style={{ background: '#eef2f7', borderLeft: '5px solid #0984e3', padding: '15px 20px', borderRadius: '6px', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
         <div>
           <span style={{ fontSize: '0.8rem', color: '#555', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 'bold' }}>Logged-In Teacher Profile</span>
-          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#2d3436', marginTop: '2px' }}>
-            👨‍🏫 {teacherData?.teacherName || 'Teacher Name Not Provided'}
+          <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#2d3436', marginTop: '2px' }}>
+            👨‍🏫 Teacher Name: <span style={{ color: '#0984e3' }}>{teacherData?.teacherName || 'Teacher Name Not Provided'}</span>
           </div>
         </div>
         <div>
           <span style={{ fontSize: '0.75rem', color: '#666', display: 'block' }}>Assigned Blocks</span>
-          <span style={{ fontWeight: '600', color: '#333', fontSize: '0.9rem' }}>{assignmentsList.length} Block(s)</span>
+          <span style={{ fontWeight: '600', color: '#333', fontSize: '0.95rem' }}>{assignmentsList.length} Block(s)</span>
         </div>
       </div>
 
