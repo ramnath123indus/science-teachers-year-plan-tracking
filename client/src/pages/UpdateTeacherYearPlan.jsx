@@ -74,15 +74,19 @@ export default function UpdateTeacherYearPlan() {
               ...existingRow,
               month: monthName,
               ncertSyllabus: existingRow.ncertSyllabus || '',
-              assessments: existingRow.assessments || '',
+              ncertStatus: existingRow.ncertStatus && existingRow.ncertStatus.trim() !== '' ? existingRow.ncertStatus : 'NOT STARTED',
               iitSyllabus: existingRow.iitSyllabus || '',
-              status: existingRow.status && existingRow.status.trim() !== '' ? existingRow.status : 'NONE',
-              section1: existingRow.section1 && existingRow.section1.trim() !== '' ? existingRow.section1 : 'NOT ASSIGNED',
-              section2: existingRow.section2 && existingRow.section2.trim() !== '' ? existingRow.section2 : 'NOT ASSIGNED',
-              section3: existingRow.section3 && existingRow.section3.trim() !== '' ? existingRow.section3 : 'NOT ASSIGNED',
-              section4: existingRow.section4 && existingRow.section4.trim() !== '' ? existingRow.section4 : 'NOT ASSIGNED',
-              section5: existingRow.section5 && existingRow.section5.trim() !== '' ? existingRow.section5 : 'NOT ASSIGNED',
-              section6: existingRow.section6 && existingRow.section6.trim() !== '' ? existingRow.section6 : 'NOT ASSIGNED'
+              iitStatus: existingRow.iitStatus && existingRow.iitStatus.trim() !== '' ? existingRow.iitStatus : 'NOT STARTED',
+              
+              // NCERT Track Sections (K1, K2, K3)
+              section1: existingRow.section1 && existingRow.section1.trim() !== '' ? existingRow.section1 : 'NOT STARTED',
+              section2: existingRow.section2 && existingRow.section2.trim() !== '' ? existingRow.section2 : 'NOT STARTED',
+              section3: existingRow.section3 && existingRow.section3.trim() !== '' ? existingRow.section3 : 'NOT STARTED',
+              
+              // IIT Track Sections (K1, K2, K3)
+              iitSection1: existingRow.iitSection1 && existingRow.iitSection1.trim() !== '' ? existingRow.iitSection1 : 'NOT STARTED',
+              iitSection2: existingRow.iitSection2 && existingRow.iitSection2.trim() !== '' ? existingRow.iitSection2 : 'NOT STARTED',
+              iitSection3: existingRow.iitSection3 && existingRow.iitSection3.trim() !== '' ? existingRow.iitSection3 : 'NOT STARTED'
             };
           });
 
@@ -91,19 +95,18 @@ export default function UpdateTeacherYearPlan() {
         })
         .catch(err => {
           console.error('Error loading plan:', err);
-          // Fallback: If fetch fails or returns 404, generate a clean 10-month empty layout anyway
           const fallbackPlan = STANDARD_MONTHS.map(monthName => ({
             month: monthName,
             ncertSyllabus: '',
-            assessments: '',
+            ncertStatus: 'NOT STARTED',
             iitSyllabus: '',
-            status: 'NONE',
-            section1: 'NOT ASSIGNED',
-            section2: 'NOT ASSIGNED',
-            section3: 'NOT ASSIGNED',
-            section4: 'NOT ASSIGNED',
-            section5: 'NOT ASSIGNED',
-            section6: 'NOT ASSIGNED'
+            iitStatus: 'NOT STARTED',
+            section1: 'NOT STARTED',
+            section2: 'NOT STARTED',
+            section3: 'NOT STARTED',
+            iitSection1: 'NOT STARTED',
+            iitSection2: 'NOT STARTED',
+            iitSection3: 'NOT STARTED'
           }));
           setYearPlan(fallbackPlan);
           setLoading(false);
@@ -116,7 +119,6 @@ export default function UpdateTeacherYearPlan() {
   const handleTeacherChange = (e) => {
     const teacherName = e.target.value;
     const found = teachers.find(t => t.teacherName === teacherName);
-    console.log('📌 Selected Teacher Object:', found);
     setSelectedTeacherObj(found || null);
     setSelectedBlock('');
     setSelectedSubject('');
@@ -184,15 +186,15 @@ export default function UpdateTeacherYearPlan() {
       '#': idx + 1,
       'Month': row.month || '',
       'NCERT Syllabus': row.ncertSyllabus || '',
-      'Assessments': row.assessments || '',
+      'NCERT_K1': row.section1 || '',
+      'NCERT_K2': row.section2 || '',
+      'NCERT_K3': row.section3 || '',
+      'NCERT Status': row.ncertStatus || '',
       'IIT Syllabus': row.iitSyllabus || '',
-      'Section-1': row.section1 || '',
-      'Section-2': row.section2 || '',
-      'Section-3': row.section3 || '',
-      'Section-4': row.section4 || '',
-      'Section-5': row.section5 || '',
-      'Section-6': row.section6 || '',
-      'Status': row.status || ''
+      'IIT_K1': row.iitSection1 || '',
+      'IIT_K2': row.iitSection2 || '',
+      'IIT_K3': row.iitSection3 || '',
+      'IIT Status': row.iitStatus || ''
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -215,7 +217,7 @@ export default function UpdateTeacherYearPlan() {
     } else if (upper === 'IN PROCESS' || upper === 'IN PROGRESS') {
       bg = '#fffde7';
       color = '#f57f17';
-    } else if (upper === 'NONE' || upper === 'NOT ASSIGNED') {
+    } else if (upper === 'NOT STARTED') {
       bg = '#f5f5f5';
       color = '#616161';
     }
@@ -232,12 +234,11 @@ export default function UpdateTeacherYearPlan() {
     };
   };
 
-  // Safe checks for assignments arrays
   const assignmentsList = selectedTeacherObj?.assignments || [];
 
   return (
     <div style={{ padding: '2rem', fontFamily: 'Segoe UI, sans-serif', maxWidth: '1400px', margin: '0 auto' }}>
-      <h2>📝 Teacher Year Plan Management</h2>
+      <h2>📝 Teacher Year Plan Management (NCERT & IIT Tracks)</h2>
 
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center', background: '#f8f9fa', padding: '1.5rem', borderRadius: '8px', border: '1px solid #dfe6e9' }}>
         <div>
@@ -323,71 +324,108 @@ export default function UpdateTeacherYearPlan() {
           <div style={{ overflowX: 'auto', marginBottom: '1.5rem' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
               <thead>
-                <tr style={{ background: '#2d3436', color: '#fff', textAlign: 'left' }}>
+                <tr style={{ background: '#2d3436', color: '#fff', textAlign: 'left', fontSize: '0.9rem' }}>
                   <th style={{ padding: '10px', border: '1px solid #ddd' }}>#</th>
                   <th style={{ padding: '10px', border: '1px solid #ddd' }}>Month</th>
                   <th style={{ padding: '10px', border: '1px solid #ddd' }}>NCERT Syllabus</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Assessments</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>NCERT_K1</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>NCERT_K2</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>NCERT_K3</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>NCERT Status</th>
                   <th style={{ padding: '10px', border: '1px solid #ddd' }}>IIT Syllabus</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Section-1</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Section-2</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Section-3</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Section-4</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Section-5</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Section-6</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>Status</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>IIT_K1</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>IIT_K2</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>IIT_K3</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>IIT Status</th>
                 </tr>
               </thead>
               <tbody>
                 {yearPlan.map((row, index) => {
-                  const statusVal = row.status ? row.status.trim().toUpperCase() : 'NONE';
-                  let rowBg = 'transparent';
-                  if (statusVal === 'COMPLETED') rowBg = '#f1f8e9';
-                  if (statusVal.includes('PROGRESS')) rowBg = '#fffde7';
-
                   return (
-                    <tr key={index} style={{ borderBottom: '1px solid #ddd', background: rowBg }}>
+                    <tr key={index} style={{ borderBottom: '1px solid #ddd' }}>
                       <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>{index + 1}</td>
                       
                       <td style={{ padding: '6px', border: '1px solid #ddd', fontWeight: 'bold', background: '#f9f9f9' }}>
                         {row.month}
                       </td>
 
-                      {['ncertSyllabus', 'assessments', 'iitSyllabus'].map((field) => (
-                        <td key={field} style={{ padding: '6px', border: '1px solid #ddd' }}>
-                          <input 
-                            type="text" 
-                            value={row[field] || ''} 
-                            disabled={mode === 'view'}
-                            onChange={(e) => handleInputChange(index, field, e.target.value)}
-                            style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', fontSize: '0.85rem', background: mode === 'view' ? '#f9f9f9' : '#fff' }}
-                          />
-                        </td>
-                      ))}
+                      {/* NCERT Syllabus Input */}
+                      <td style={{ padding: '6px', border: '1px solid #ddd' }}>
+                        <input 
+                          type="text" 
+                          value={row.ncertSyllabus || ''} 
+                          disabled={mode === 'view'}
+                          onChange={(e) => handleInputChange(index, 'ncertSyllabus', e.target.value)}
+                          style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', fontSize: '0.85rem', background: mode === 'view' ? '#f9f9f9' : '#fff' }}
+                        />
+                      </td>
 
-                      {['section1', 'section2', 'section3', 'section4', 'section5', 'section6'].map((secField) => (
+                      {/* NCERT Sections (K1, K2, K3) */}
+                      {['section1', 'section2', 'section3'].map((secField) => (
                         <td key={secField} style={{ padding: '6px', border: '1px solid #ddd' }}>
                           <select
-                            value={row[secField] || 'NOT ASSIGNED'}
+                            value={row[secField] || 'NOT STARTED'}
                             disabled={mode === 'view'}
                             onChange={(e) => handleInputChange(index, secField, e.target.value)}
                             style={getDropdownStyle(row[secField])}
                           >
-                            <option value="NOT ASSIGNED">NOT ASSIGNED</option>
+                            <option value="NOT STARTED">NOT STARTED</option>
                             <option value="IN PROCESS">IN PROCESS</option>
                             <option value="COMPLETED">COMPLETED</option>
                           </select>
                         </td>
                       ))}
 
+                      {/* NCERT Status */}
                       <td style={{ padding: '6px', border: '1px solid #ddd' }}>
                         <select
-                          value={row.status || 'NONE'}
+                          value={row.ncertStatus || 'NOT STARTED'}
                           disabled={mode === 'view'}
-                          onChange={(e) => handleInputChange(index, 'status', e.target.value)}
-                          style={getDropdownStyle(row.status)}
+                          onChange={(e) => handleInputChange(index, 'ncertStatus', e.target.value)}
+                          style={getDropdownStyle(row.ncertStatus)}
                         >
-                          <option value="NONE">NONE</option>
+                          <option value="NOT STARTED">NOT STARTED</option>
+                          <option value="IN PROCESS">IN PROCESS</option>
+                          <option value="COMPLETED">COMPLETED</option>
+                        </select>
+                      </td>
+
+                      {/* IIT Syllabus Input */}
+                      <td style={{ padding: '6px', border: '1px solid #ddd' }}>
+                        <input 
+                          type="text" 
+                          value={row.iitSyllabus || ''} 
+                          disabled={mode === 'view'}
+                          onChange={(e) => handleInputChange(index, 'iitSyllabus', e.target.value)}
+                          style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', fontSize: '0.85rem', background: mode === 'view' ? '#f9f9f9' : '#fff' }}
+                        />
+                      </td>
+
+                      {/* IIT Sections (K1, K2, K3) */}
+                      {['iitSection1', 'iitSection2', 'iitSection3'].map((secField) => (
+                        <td key={secField} style={{ padding: '6px', border: '1px solid #ddd' }}>
+                          <select
+                            value={row[secField] || 'NOT STARTED'}
+                            disabled={mode === 'view'}
+                            onChange={(e) => handleInputChange(index, secField, e.target.value)}
+                            style={getDropdownStyle(row[secField])}
+                          >
+                            <option value="NOT STARTED">NOT STARTED</option>
+                            <option value="IN PROCESS">IN PROCESS</option>
+                            <option value="COMPLETED">COMPLETED</option>
+                          </select>
+                        </td>
+                      ))}
+
+                      {/* IIT Status */}
+                      <td style={{ padding: '6px', border: '1px solid #ddd' }}>
+                        <select
+                          value={row.iitStatus || 'NOT STARTED'}
+                          disabled={mode === 'view'}
+                          onChange={(e) => handleInputChange(index, 'iitStatus', e.target.value)}
+                          style={getDropdownStyle(row.iitStatus)}
+                        >
+                          <option value="NOT STARTED">NOT STARTED</option>
                           <option value="IN PROCESS">IN PROCESS</option>
                           <option value="COMPLETED">COMPLETED</option>
                         </select>
