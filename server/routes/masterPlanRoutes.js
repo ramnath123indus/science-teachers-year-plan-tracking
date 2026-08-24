@@ -20,7 +20,7 @@ function getExistingExcelFilePath(blockName, subject, grade) {
     fs.mkdirSync(EXCEL_DIR, { recursive: true });
   }
 
-  // Create a unique filename for EVERY block (e.g., Anmol_PHYSICS_Grade 6.xlsx, Sunrise_PHYSICS_Grade 6.xlsx)
+  // Create a unique filename for EVERY block
   const blockPrefix = safeBlock.toUpperCase() === 'GENERAL' || !safeBlock ? 'General' : safeBlock;
   const fileName = `${blockPrefix}_${safeSubject}_Grade ${safeGrade}.xlsx`;
 
@@ -41,7 +41,6 @@ function getExistingExcelFilePath(blockName, subject, grade) {
 function getFourthColumnHeader(subject) {
   const upper = (subject || '').toUpperCase();
   if (upper === 'BIOLOGY') return 'NEET SYLLABUS';
-  // Both Physics and Chemistry use 'IIT SYLLABUS' based on your excel sheets
   return 'IIT SYLLABUS'; 
 }
 
@@ -49,45 +48,50 @@ router.get('/submit', (req, res) => {
   try {
     let { blockName, subject, grade } = req.query;
 
-    if (!blockName || !subject || !grade) {
-      blockName = blockName || 'General';
-      subject = subject || 'PHYSICS';
-      grade = grade || '10';
-    }
+    blockName = blockName || 'General';
+    subject = subject || 'PHYSICS';
+    grade = grade || '10';
 
     const filePath = getExistingExcelFilePath(blockName, subject, grade);
 
     if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: `Excel file '${path.basename(filePath)}' not found on server.` });
+      return res.status(404).json({ error: `Excel file not found on server.` });
     }
 
     const workbook = XLSX.readFile(filePath);
-    const targetSheetName = workbook.SheetNames.includes('Year Plan') 
-      ? 'Year Plan' 
-      : workbook.SheetNames[0];
-      
+    const targetSheetName = workbook.SheetNames.includes('Year Plan') ? 'Year Plan' : workbook.SheetNames[0];
     const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[targetSheetName], { defval: '' });
-
-    const sheetData = rawData.filter(row => {
-      const monthVal = row['MONTH'] || row['Month'] || '';
-      return monthVal.toString().trim() !== '';
-    });
 
     const fourthColHeader = getFourthColumnHeader(subject);
 
-    const yearPlan = sheetData.map(row => ({
+    const yearPlan = rawData.map((row, index) => ({
+      id: index,
       month: row['MONTH'] || row['Month'] || '',
+      
       ncertSyllabus: row['NCERT SYLLABUS'] || row['NCERT Syllabus'] || '',
-      assessments: row['ASSESSMENTS'] || row['Assessments'] || '',
+      ncertStatus: row['NCERT STATUS'] || 'Not Started',
+      
+      // NCERT Block Section mappings (e.g. NCERT_K1, NCERT_K2, NCERT_K3)
+      section1: row['NCERT_K1'] || row['SECTION-1'] || row['Section-1'] || 'Not Assigned',
+      section2: row['NCERT_K2'] || row['SECTION-2'] || row['Section-2'] || 'Not Assigned',
+      section3: row['NCERT_K3'] || row['SECTION-3'] || row['Section-3'] || 'Not Assigned',
+      section4: row['NCERT_K4'] || row['SECTION-4'] || 'Not Assigned',
+      section5: row['NCERT_K5'] || row['SECTION-5'] || 'Not Assigned',
+      section6: row['NCERT_K6'] || row['SECTION-6'] || 'Not Assigned',
+
       iitSyllabus: row[fourthColHeader] || row['IIT SYLLABUS'] || row['NEET SYLLABUS'] || row['JEE SYLLABUS'] || '',
-      section1: row['SECTION-1'] || row['Section-1'] || 'Not Assigned',
-      section2: row['SECTION-2'] || row['Section-2'] || 'Not Assigned',
-      section3: row['SECTION-3'] || row['Section-3'] || 'Not Assigned',
-      section4: row['SECTION-4'] || row['Section-4'] || 'Not Assigned',
-      section5: row['SECTION-5'] || row['Section-5'] || 'Not Assigned',
-      section6: row['SECTION-6'] || row['Section-6'] || 'Not Assigned',
-      status: row['STATUS'] || row['Status'] || 'Not Assigned'
-    }));
+      iitStatus: row['IIT STATUS'] || 'Not Started',
+      
+      // IIT Block Section mappings (e.g. IIT_K1, IIT_K2, IIT_K3)
+      iitSection1: row['IIT_K1'] || row['SEC-1'] || 'Not Assigned',
+      iitSection2: row['IIT_K2'] || row['SEC-2'] || 'Not Assigned',
+      iitSection3: row['IIT_K3'] || row['SEC-3'] || 'Not Assigned',
+      iitSection4: row['IIT_K4'] || 'Not Assigned',
+      iitSection5: row['IIT_K5'] || 'Not Assigned',
+      iitSection6: row['IIT_K6'] || 'Not Assigned',
+
+      status: row['NCERT STATUS'] || row['Status'] || 'Not Assigned'
+    })).filter(row => row.month.toString().trim() !== '');
 
     res.json({ yearPlan });
   } catch (err) {
@@ -107,18 +111,18 @@ router.post('/update', (req, res) => {
       const obj = {
         'MONTH': row.month || '',
         'NCERT SYLLABUS': row.ncertSyllabus || '',
-        'ASSESSMENTS': row.assessments || ''
+        'NCERT_K1': row.section1 || 'Not Assigned',
+        'NCERT_K2': row.section2 || 'Not Assigned',
+        'NCERT_K3': row.section3 || 'Not Assigned',
+        'NCERT STATUS': row.ncertStatus || 'Not Assigned'
       };
       
       obj[fourthColumnHeader] = row.iitSyllabus || '';
 
-      obj['SECTION-1'] = row.section1 || 'Not Assigned';
-      obj['SECTION-2'] = row.section2 || 'Not Assigned';
-      obj['SECTION-3'] = row.section3 || 'Not Assigned';
-      obj['SECTION-4'] = row.section4 || 'Not Assigned';
-      obj['SECTION-5'] = row.section5 || 'Not Assigned';
-      obj['SECTION-6'] = row.section6 || 'Not Assigned';
-      obj['STATUS'] = row.status || 'Not Assigned';
+      obj['IIT_K1'] = row.iitSection1 || 'Not Assigned';
+      obj['IIT_K2'] = row.iitSection2 || 'Not Assigned';
+      obj['IIT_K3'] = row.iitSection3 || 'Not Assigned';
+      obj['IIT STATUS'] = row.iitStatus || 'Not Assigned';
 
       return obj;
     });
