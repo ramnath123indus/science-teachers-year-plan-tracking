@@ -1,5 +1,6 @@
 import express from 'express';
-import MasterYearPlan from '../models/MasterYearPlan.js'; // ✅ new correct import
+import MasterYearPlan from '../models/MasterYearPlan.js'; // ✅ Correct import
+
 const router = express.Router();
 
 // @route   GET /api/master-plans/submit
@@ -17,7 +18,7 @@ router.get('/submit', async (req, res) => {
       query.teacherName = teacherName;
     }
 
-    const plan = await MasterPlan.findOne(query);
+    const plan = await MasterYearPlan.findOne(query);
 
     if (!plan) {
       return res.status(404).json({ error: 'No master plan found for the specified criteria.' });
@@ -30,9 +31,9 @@ router.get('/submit', async (req, res) => {
   }
 });
 
-// @route   POST /api/master-plans/submit
+// @route   POST /api/master-plans/update (and /submit for compatibility)
 // @desc    Create or update year plan entries including NCERT and IIT tracking fields
-router.post('/submit', async (req, res) => {
+const handleSaveOrUpdate = async (req, res) => {
   try {
     const { blockName, subject, grade, teacherName, yearPlan } = req.body;
 
@@ -41,9 +42,6 @@ router.post('/submit', async (req, res) => {
     }
 
     const query = { blockName, subject, grade };
-    if (teacherName) {
-      query.teacherName = teacherName;
-    }
 
     // Ensure status fields are properly normalized
     const processedYearPlan = yearPlan.map(row => ({
@@ -56,13 +54,13 @@ router.post('/submit', async (req, res) => {
       sec4: row.sec4 || 'Not Started',
       sec5: row.sec5 || 'Not Started',
       sec6: row.sec6 || 'Not Started',
-      iit_sec1: row.iit_sec1 || 'Not Started',
-      iit_sec2: row.iit_sec2 || 'Not Started',
-      iit_sec3: row.iit_sec3 || 'Not Started',
-      iit_sec4: row.iit_sec4 || 'Not Started'
+      iitSec1: row.iitSec1 || row.iit_sec1 || 'Not Started',
+      iitSec2: row.iitSec2 || row.iit_sec2 || 'Not Started',
+      iitSec3: row.iitSec3 || row.iit_sec3 || 'Not Started',
+      iitSec4: row.iitSec4 || row.iit_sec4 || 'Not Started'
     }));
 
-    let masterPlan = await MasterPlan.findOne(query);
+    let masterPlan = await MasterYearPlan.findOne(query);
 
     if (masterPlan) {
       // Update existing record
@@ -71,7 +69,7 @@ router.post('/submit', async (req, res) => {
       await masterPlan.save();
     } else {
       // Create new record
-      masterPlan = new MasterPlan({
+      masterPlan = new MasterYearPlan({
         blockName,
         subject,
         grade,
@@ -86,6 +84,9 @@ router.post('/submit', async (req, res) => {
     console.error('Error saving master plan:', err);
     res.status(500).json({ error: 'Server error while saving master plan.' });
   }
-});
+};
+
+router.post('/update', handleSaveOrUpdate);
+router.post('/submit', handleSaveOrUpdate);
 
 export default router;
