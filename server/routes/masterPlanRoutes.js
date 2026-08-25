@@ -1,6 +1,6 @@
-const express = require('express');
+import express from 'express';
+import MasterYearPlan from '../models/MasterYearPlan.js'; // ✅ new correct import
 const router = express.Router();
-const MasterPlan = require('../models/MasterPlan'); // Adjust path to your MasterPlan model if needed
 
 // @route   GET /api/master-plans/submit
 // @desc    Get year plan entries for specific block, subject, grade, and optional teacher name
@@ -88,4 +88,4 @@ router.post('/submit', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
