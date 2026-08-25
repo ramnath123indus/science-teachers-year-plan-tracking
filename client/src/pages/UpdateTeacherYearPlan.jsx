@@ -67,20 +67,19 @@ export default function UpdateTeacherYearPlan() {
           const processedPlan = STANDARD_MONTHS.map(monthName => {
             const existingRow = planMap[monthName] || {};
             return {
-              ...existingRow,
               month: monthName,
-              ncertSyllabus: existingRow.ncertSyllabus || '',
+              ncertSyllabus: existingRow.ncertSyllabus || existingRow.syllabus || '',
               ncertStatus: existingRow.ncertStatus || existingRow.status || 'Not Started',
               iitSyllabus: existingRow.iitSyllabus || '',
               iitStatus: existingRow.iitStatus || 'Not Started',
-              // NCERT sections 1 to 6
+              // NCERT sections 1 to 6 explicitly mapped
               sec1: existingRow.sec1 || existingRow.section1 || 'Not Started',
               sec2: existingRow.sec2 || existingRow.section2 || 'Not Started',
               sec3: existingRow.sec3 || existingRow.section3 || 'Not Started',
               sec4: existingRow.sec4 || existingRow.section4 || 'Not Started',
               sec5: existingRow.sec5 || existingRow.section5 || 'Not Started',
               sec6: existingRow.sec6 || existingRow.section6 || 'Not Started',
-              // IIT sections 1 to 4
+              // IIT sections 1 to 4 explicitly mapped
               iitSec1: existingRow.iitSec1 || 'Not Started',
               iitSec2: existingRow.iitSec2 || 'Not Started',
               iitSec3: existingRow.iitSec3 || 'Not Started',
@@ -147,7 +146,10 @@ export default function UpdateTeacherYearPlan() {
   const handleInputChange = (index, field, value) => {
     if (mode === 'view') return;
     const updated = [...yearPlan];
-    updated[index][field] = value;
+    updated[index] = {
+      ...updated[index],
+      [field]: value
+    };
     setYearPlan(updated);
   };
 
@@ -159,16 +161,35 @@ export default function UpdateTeacherYearPlan() {
     setMessage('');
 
     try {
+      // Clean and structure every property explicitly so backend receives all columns
+      const sanitizedYearPlan = yearPlan.map(row => ({
+        month: row.month,
+        ncertSyllabus: row.ncertSyllabus || '',
+        sec1: row.sec1 || 'Not Started',
+        sec2: row.sec2 || 'Not Started',
+        sec3: row.sec3 || 'Not Started',
+        sec4: row.sec4 || 'Not Started',
+        sec5: row.sec5 || 'Not Started',
+        sec6: row.sec6 || 'Not Started',
+        ncertStatus: row.ncertStatus || 'Not Started',
+        iitSyllabus: row.iitSyllabus || '',
+        iitSec1: row.iitSec1 || 'Not Started',
+        iitSec2: row.iitSec2 || 'Not Started',
+        iitSec3: row.iitSec3 || 'Not Started',
+        iitSec4: row.iitSec4 || 'Not Started',
+        iitStatus: row.iitStatus || 'Not Started'
+      }));
+
       const payload = {
         teacherName: selectedTeacherObj?.teacherName || '',
         blockName: selectedBlock,
         subject: selectedSubject,
         grade: gradeQuery,
-        yearPlan: yearPlan
+        yearPlan: sanitizedYearPlan
       };
 
       await axios.post(`${apiHost}/api/master-plans/update`, payload);
-      setMessage('✅ Year plan saved successfully!');
+      setMessage('✅ Year plan saved successfully with all columns!');
       setMode('view');
     } catch (err) {
       console.error('Error saving year plan:', err);
