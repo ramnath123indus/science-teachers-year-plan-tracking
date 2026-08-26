@@ -22,11 +22,11 @@ const MasterYearPlanSchema = new mongoose.Schema({
   blockName: { type: String, required: true },
   subject: { type: String, required: true },
   grade: { type: String, required: true },
-  teacherName: { type: String, default: 'Unassigned' },
+  teacherName: { type: String, required: true, default: 'Unassigned' },
   yearPlan: [PlanItemSchema]
 }, { timestamps: true });
 
-// Ensures a unique combination of blockName, subject, and grade
-MasterYearPlanSchema.index({ blockName: 1, subject: 1, grade: 1 }, { unique: true });
+// Ensures a unique combination of blockName, subject, grade, and teacherName
+MasterYearPlanSchema.index({ blockName: 1, subject: 1, grade: 1, teacherName: 1 }, { unique: true });
 
 export default mongoose.model('MasterYearPlan', MasterYearPlanSchema);
