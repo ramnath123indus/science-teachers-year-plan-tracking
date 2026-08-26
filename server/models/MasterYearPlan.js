@@ -26,7 +26,7 @@ const MasterYearPlanSchema = new mongoose.Schema({
   yearPlan: [PlanItemSchema]
 }, { timestamps: true });
 
-// Ensures a unique combination of blockName, subject, grade, and teacherName
-MasterYearPlanSchema.index({ blockName: 1, subject: 1, grade: 1, teacherName: 1 }, { unique: true });
+// Ensures a unique combination of blockName, subject, grade, and teacherName in the background
+MasterYearPlanSchema.index({ blockName: 1, subject: 1, grade: 1, teacherName: 1 }, { unique: true, background: true });
 
 export default mongoose.model('MasterYearPlan', MasterYearPlanSchema);
