@@ -9,8 +9,7 @@ const router = express.Router();
 // Helper function to read from Excel files in server/master-excel-files folder
 const getPlanFromExcel = (blockName, subject, grade) => {
   try {
-    // Construct filename pattern, e.g., Kailash_PHYSICS_Grade 7.xlsx
-    const folderPath = path.join(process.cwd(), 'master-excel-files'); // adjust path if needed
+    const folderPath = path.join(process.cwd(), 'master-excel-files'); 
     if (!fs.existsSync(folderPath)) return null;
 
     const files = fs.readdirSync(folderPath);
@@ -53,6 +52,7 @@ const getPlanFromExcel = (blockName, subject, grade) => {
 };
 
 // @route   GET /api/master-plans/submit
+// @desc    Get year plan entries for specific block, subject, grade, and teacher name
 router.get('/submit', async (req, res) => {
   try {
     const { blockName, subject, grade, teacherName } = req.query;
@@ -61,10 +61,15 @@ router.get('/submit', async (req, res) => {
       return res.status(400).json({ error: 'Please provide blockName, subject, and grade.' });
     }
 
-    // 1. Check MongoDB first
-    let plan = await MasterYearPlan.findOne({ blockName, subject, grade });
+    const query = { blockName, subject, grade };
+    if (teacherName) {
+      query.teacherName = teacherName;
+    }
 
-    // 2. If not found in DB, check master Excel files folder!
+    // 1. Check MongoDB for this specific teacher + criteria
+    let plan = await MasterYearPlan.findOne(query);
+
+    // 2. If not found in DB, check master Excel files folder as a fallback
     if (!plan || !plan.yearPlan || plan.yearPlan.length === 0) {
       const excelYearPlan = getPlanFromExcel(blockName, subject, grade);
       if (excelYearPlan) {
@@ -78,41 +83,35 @@ router.get('/submit', async (req, res) => {
       }
     }
 
-    if (!plan) {
-      return res.json({ yearPlan: [] });
-    }
-
-    res.json(plan);
+    res.json(plan || { yearPlan: [] });
   } catch (err) {
     console.error('Error fetching master plan:', err);
-    res.status(500).json({ error: 'Server error while fetching master plan.' });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// @route   POST /api/master-plans/update
+// @route   POST /api/master-plans/update & /submit
+// @desc    Create or update teacher-specific year plan entries
 const handleSaveOrUpdate = async (req, res) => {
   try {
     const { blockName, subject, grade, teacherName, yearPlan } = req.body;
 
-    if (!blockName || !subject || !grade || !yearPlan) {
-      return res.status(400).json({ error: 'Missing required fields.' });
+    if (!blockName || !subject || !grade || !yearPlan || !teacherName) {
+      return res.status(400).json({ error: 'Missing required fields including teacherName.' });
     }
 
-    const query = { blockName, subject, grade };
+    const query = { blockName, subject, grade, teacherName };
 
     const updatedPlan = await MasterYearPlan.findOneAndUpdate(
       query,
-      {
-        teacherName: teacherName || 'Unassigned',
-        yearPlan: yearPlan
-      },
+      { blockName, subject, grade, teacherName, yearPlan },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
 
-    res.json({ message: '✅ Year plan saved successfully!', updatedPlan });
+    res.json({ message: '✅ Teacher year plan saved successfully!', updatedPlan });
   } catch (err) {
     console.error('Error saving master plan:', err);
-    res.status(500).json({ error: 'Server error while saving master plan.' });
+    res.status(500).json({ error: err.message });
   }
 };
 
