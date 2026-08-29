@@ -70,31 +70,33 @@ export default function TeacherDashboard() {
     }
   };
 
-  // 2. Fetch Summary Dashboard Data & ensure standard breakdown defaults exist
+  // 2. Fetch Summary Dashboard Data & robustly map status fields from backend
   useEffect(() => {
     if (!selectedTeacherName) return;
 
     axios.get(`${apiHost}/api/dashboard/summary?teacherName=${encodeURIComponent(selectedTeacherName)}`)
       .then(res => {
-        const data = res.data || {};
-        const apiBreakdown = data.breakdown || [];
+        const resData = res.data || {};
+        const apiBreakdown = resData.breakdown || resData.summary || (Array.isArray(resData) ? resData : []) || [];
+        
         const breakdownMap = {};
         apiBreakdown.forEach(b => {
-          if (b.month) breakdownMap[b.month.trim().toUpperCase()] = b;
+          const mName = (b.month || b._id || '').trim().toUpperCase();
+          if (mName) breakdownMap[mName] = b;
         });
 
         const mergedBreakdown = STANDARD_MONTHS.map(m => {
           const existing = breakdownMap[m] || {};
           return {
             month: m,
-            ncertStatus: existing.ncertStatus || existing.status || 'Not Started',
-            iitStatus: existing.iitStatus || 'Not Started'
+            ncertStatus: existing.ncertStatus || existing.ncert || existing.status || existing.ncert_status || 'Not Started',
+            iitStatus: existing.iitStatus || existing.iit || existing.iit_status || 'Not Started'
           };
         });
 
         setDashboardData({
-          ncertCompleted: data.ncertCompleted ?? mergedBreakdown.filter(r => r.ncertStatus.toUpperCase() === 'COMPLETED').length,
-          iitCompleted: data.iitCompleted ?? mergedBreakdown.filter(r => r.iitStatus.toUpperCase() === 'COMPLETED').length,
+          ncertCompleted: resData.ncertCompleted ?? mergedBreakdown.filter(r => r.ncertStatus.toUpperCase() === 'COMPLETED').length,
+          iitCompleted: resData.iitCompleted ?? mergedBreakdown.filter(r => r.iitStatus.toUpperCase() === 'COMPLETED').length,
           breakdown: mergedBreakdown
         });
       })
@@ -134,13 +136,13 @@ export default function TeacherDashboard() {
               sec4: existingRow.sec4 || 'Not Started',
               sec5: existingRow.sec5 || 'Not Started',
               sec6: existingRow.sec6 || 'Not Started',
-              ncertStatus: existingRow.ncertStatus || existingRow.status || 'Not Started',
+              ncertStatus: existingRow.ncertStatus || existingRow.status || existingRow.ncert_status || 'Not Started',
               iitSyllabus: existingRow.iitSyllabus || '',
               iitSec1: existingRow.iitSec1 || 'Not Started',
               iitSec2: existingRow.iitSec2 || 'Not Started',
               iitSec3: existingRow.iitSec3 || 'Not Started',
               iitSec4: existingRow.iitSec4 || 'Not Started',
-              iitStatus: existingRow.iitStatus || 'Not Started'
+              iitStatus: existingRow.iitStatus || existingRow.iit_status || 'Not Started'
             };
           });
 
@@ -457,13 +459,13 @@ export default function TeacherDashboard() {
                   <td style={{ padding: '6px', border: '1px solid #ddd' }}>{row.sec4}</td>
                   <td style={{ padding: '6px', border: '1px solid #ddd' }}>{row.sec5}</td>
                   <td style={{ padding: '6px', border: '1px solid #ddd' }}>{row.sec6}</td>
-                  <td style={{ padding: '6px', border: '1px solid #ddd', fontWeight: 'bold', color: row.ncertStatus === 'COMPLETED' ? '#27ae60' : '#d35400' }}>{row.ncertStatus}</td>
+                  <td style={{ padding: '6px', border: '1px solid #ddd', fontWeight: 'bold', color: row.ncertStatus.toUpperCase() === 'COMPLETED' ? '#27ae60' : '#d35400' }}>{row.ncertStatus}</td>
                   <td style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'left', minWidth: '180px' }}>{row.iitSyllabus || '-'}</td>
                   <td style={{ padding: '6px', border: '1px solid #ddd' }}>{row.iitSec1}</td>
                   <td style={{ padding: '6px', border: '1px solid #ddd' }}>{row.iitSec2}</td>
                   <td style={{ padding: '6px', border: '1px solid #ddd' }}>{row.iitSec3}</td>
                   <td style={{ padding: '6px', border: '1px solid #ddd' }}>{row.iitSec4}</td>
-                  <td style={{ padding: '6px', border: '1px solid #ddd', fontWeight: 'bold', color: row.iitStatus === 'COMPLETED' ? '#27ae60' : '#d35400' }}>{row.iitStatus}</td>
+                  <td style={{ padding: '6px', border: '1px solid #ddd', fontWeight: 'bold', color: row.iitStatus.toUpperCase() === 'COMPLETED' ? '#27ae60' : '#d35400' }}>{row.iitStatus}</td>
                 </tr>
               ))}
             </tbody>
