@@ -9,6 +9,7 @@ const STANDARD_MONTHS = [
 
 export default function TeacherDashboard() {
   const [teachers, setTeachers] = useState([]);
+  const [selectedTeacherName, setSelectedTeacherName] = useState('');
   const [selectedTeacherObj, setSelectedTeacherObj] = useState(null);
   const [selectedBlock, setSelectedBlock] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -27,7 +28,7 @@ export default function TeacherDashboard() {
       : 'https://physics-teachers-year-plan-tracking-1.onrender.com')
   ).replace(/\/+$/, '');
 
-  // 1. Fetch teachers list on mount
+  // 1. Fetch teachers list on mount and default to the first teacher
   useEffect(() => {
     axios.get(`${apiHost}/api/teachers`)
       .then(res => {
@@ -35,6 +36,7 @@ export default function TeacherDashboard() {
         setTeachers(list);
         if (list.length > 0) {
           const firstTeacher = list[0];
+          setSelectedTeacherName(firstTeacher.teacherName);
           setSelectedTeacherObj(firstTeacher);
           if (firstTeacher.assignments && firstTeacher.assignments.length > 0) {
             setSelectedBlock(firstTeacher.assignments[0].blockName);
@@ -51,13 +53,62 @@ export default function TeacherDashboard() {
       });
   }, [apiHost]);
 
-  // 2. Fetch Summary Dashboard Data & fallback computation if breakdown status is missing
-  useEffect(() => {
-    if (!selectedTeacherObj) return;
+  // Handle teacher selection change
+  const handleTeacherChange = (e) => {
+    const name = e.target.value;
+    setSelectedTeacherName(name);
 
-    axios.get(`${apiHost}/api/dashboard/summary?teacherName=${encodeURIComponent(selectedTeacherObj.teacherName)}`)
+    if (!name) {
+      setSelectedTeacherObj(null);
+      setSelectedBlock('');
+      setSelectedSubject('');
+      setSelectedGrade('');
+      setDashboardData(null);
+      setYearPlanRows([]);
+      return;
+    }
+
+    const found = teachers.find(t => t.teacherName === name);
+    setSelectedTeacherObj(found || null);
+
+    if (found?.assignments?.[0]) {
+      setSelectedBlock(found.assignments[0].blockName);
+      setSelectedSubject(found.assignments[0].subject);
+      setSelectedGrade(found.assignments[0].grades?.[0] || '');
+    } else {
+      setSelectedBlock('');
+      setSelectedSubject('');
+      setSelectedGrade('');
+    }
+  };
+
+  // 2. Fetch Summary Dashboard Data & ensure standard breakdown defaults exist
+  useEffect(() => {
+    if (!selectedTeacherName) return;
+
+    axios.get(`${apiHost}/api/dashboard/summary?teacherName=${encodeURIComponent(selectedTeacherName)}`)
       .then(res => {
-        setDashboardData(res.data);
+        const data = res.data || {};
+        const apiBreakdown = data.breakdown || [];
+        const breakdownMap = {};
+        apiBreakdown.forEach(b => {
+          if (b.month) breakdownMap[b.month.trim().toUpperCase()] = b;
+        });
+
+        const mergedBreakdown = STANDARD_MONTHS.map(m => {
+          const existing = breakdownMap[m] || {};
+          return {
+            month: m,
+            ncertStatus: existing.ncertStatus || existing.status || 'Not Started',
+            iitStatus: existing.iitStatus || 'Not Started'
+          };
+        });
+
+        setDashboardData({
+          ncertCompleted: data.ncertCompleted ?? mergedBreakdown.filter(r => r.ncertStatus.toUpperCase() === 'COMPLETED').length,
+          iitCompleted: data.iitCompleted ?? mergedBreakdown.filter(r => r.iitStatus.toUpperCase() === 'COMPLETED').length,
+          breakdown: mergedBreakdown
+        });
       })
       .catch(err => {
         console.error('Error loading summary dashboard:', err);
@@ -67,14 +118,14 @@ export default function TeacherDashboard() {
           breakdown: STANDARD_MONTHS.map(m => ({ month: m, ncertStatus: 'Not Started', iitStatus: 'Not Started' }))
         });
       });
-  }, [apiHost, selectedTeacherObj]);
+  }, [apiHost, selectedTeacherName]);
 
   // 3. Fetch detailed Year Plan spreadsheet / card rows when selection/filters change
   useEffect(() => {
-    if (selectedTeacherObj && selectedBlock && selectedSubject && selectedGrade) {
+    if (selectedTeacherName && selectedBlock && selectedSubject && selectedGrade) {
       setLoading(true);
       const gradeQuery = String(selectedGrade).replace(/Grade\s*/i, '').trim();
-      const teacherParam = `&teacherName=${encodeURIComponent(selectedTeacherObj.teacherName)}`;
+      const teacherParam = `&teacherName=${encodeURIComponent(selectedTeacherName)}`;
 
       axios.get(`${apiHost}/api/master-plans/submit?blockName=${encodeURIComponent(selectedBlock)}&subject=${encodeURIComponent(selectedSubject)}&grade=${encodeURIComponent(gradeQuery)}${teacherParam}`)
         .then(res => {
@@ -106,25 +157,6 @@ export default function TeacherDashboard() {
           });
 
           setYearPlanRows(fullSheetRows);
-          
-          // Dynamically synchronize summary breakdown status if dashboardData lacks it
-          setDashboardData(prev => {
-            const breakdownWithStatus = fullSheetRows.map(r => ({
-              month: r.month,
-              ncertStatus: r.ncertStatus,
-              iitStatus: r.iitStatus
-            }));
-            const ncertCompletedCount = fullSheetRows.filter(r => (r.ncertStatus || '').toUpperCase() === 'COMPLETED').length;
-            const iitCompletedCount = fullSheetRows.filter(r => (r.iitStatus || '').toUpperCase() === 'COMPLETED').length;
-            
-            return {
-              ...(prev || {}),
-              ncertCompleted: prev?.ncertCompleted ?? ncertCompletedCount,
-              iitCompleted: prev?.iitCompleted ?? iitCompletedCount,
-              breakdown: breakdownWithStatus
-            };
-          });
-
           setLoading(false);
         })
         .catch(err => {
@@ -133,7 +165,7 @@ export default function TeacherDashboard() {
           setLoading(false);
         });
     }
-  }, [apiHost, selectedTeacherObj, selectedBlock, selectedSubject, selectedGrade]);
+  }, [apiHost, selectedTeacherName, selectedBlock, selectedSubject, selectedGrade]);
 
   const handleExportExcel = () => {
     const exportData = yearPlanRows.map((row, idx) => ({
@@ -158,8 +190,12 @@ export default function TeacherDashboard() {
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Year Plan Sheet');
-    XLSX.writeFile(workbook, `${selectedTeacherObj?.teacherName || 'Teacher'}_${selectedSubject}_${selectedGrade}_Sheet.xlsx`);
+    XLSX.writeFile(workbook, `${selectedTeacherName || 'Teacher'}_${selectedSubject}_${selectedGrade}_Sheet.xlsx`);
     setMessage('📥 Excel file downloaded successfully!');
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const getStatusBadgeStyle = (status) => {
@@ -177,6 +213,19 @@ export default function TeacherDashboard() {
   return (
     <div style={{ padding: '2rem', fontFamily: 'Segoe UI, sans-serif', maxWidth: '1600px', margin: '0 auto' }}>
       
+      {/* CSS Print Styles to hide controls during printing */}
+      <style>{`
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+          body {
+            background: #fff !important;
+            padding: 0 !important;
+          }
+        }
+      `}</style>
+
       {/* Top Header & View Toggle Toolbar */}
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
@@ -184,25 +233,35 @@ export default function TeacherDashboard() {
           <p style={{ color: '#666', margin: '0' }}>Switch between the summary dashboard, monthly cards view, and the full interactive Excel sheet view.</p>
         </div>
         
-        {/* View Mode Toggle Buttons */}
-        <div style={{ display: 'flex', gap: '8px', background: '#dfe6e9', padding: '4px', borderRadius: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* View Mode Toggle Buttons */}
+          <div style={{ display: 'flex', gap: '8px', background: '#dfe6e9', padding: '4px', borderRadius: '8px' }}>
+            <button 
+              onClick={() => setViewMode('summary')}
+              style={{ padding: '8px 16px', background: viewMode === 'summary' ? '#2d3436' : 'transparent', color: viewMode === 'summary' ? '#fff' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              📊 Summary
+            </button>
+            <button 
+              onClick={() => setViewMode('cards')}
+              style={{ padding: '8px 16px', background: viewMode === 'cards' ? '#6c5ce7' : 'transparent', color: viewMode === 'cards' ? '#fff' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              🗂️ Cards
+            </button>
+            <button 
+              onClick={() => setViewMode('excel')}
+              style={{ padding: '8px 16px', background: viewMode === 'excel' ? '#0984e3' : 'transparent', color: viewMode === 'excel' ? '#fff' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              📋 Excel Sheet
+            </button>
+          </div>
+
+          {/* Print Button */}
           <button 
-            onClick={() => setViewMode('summary')}
-            style={{ padding: '8px 16px', background: viewMode === 'summary' ? '#2d3436' : 'transparent', color: viewMode === 'summary' ? '#fff' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+            onClick={handlePrint}
+            style={{ padding: '8px 16px', background: '#2d3436', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            📊 Summary Dashboard
-          </button>
-          <button 
-            onClick={() => setViewMode('cards')}
-            style={{ padding: '8px 16px', background: viewMode === 'cards' ? '#6c5ce7' : 'transparent', color: viewMode === 'cards' ? '#fff' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-          >
-            🗂️ Monthly Cards View
-          </button>
-          <button 
-            onClick={() => setViewMode('excel')}
-            style={{ padding: '8px 16px', background: viewMode === 'excel' ? '#0984e3' : 'transparent', color: viewMode === 'excel' ? '#fff' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-          >
-            📋 View Excel Sheet
+            🖨️ Print View
           </button>
         </div>
       </div>
@@ -211,22 +270,15 @@ export default function TeacherDashboard() {
       <div className="no-print" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center', background: '#f8f9fa', padding: '1.2rem', borderRadius: '8px', border: '1px solid #dfe6e9', flexWrap: 'wrap' }}>
         <div>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.85rem' }}>Select Teacher:</label>
-          <select value={selectedTeacherObj?.teacherName || ''} onChange={(e) => {
-            const found = teachers.find(t => t.teacherName === e.target.value);
-            setSelectedTeacherObj(found || null);
-            if (found?.assignments?.[0]) {
-              setSelectedBlock(found.assignments[0].blockName);
-              setSelectedSubject(found.assignments[0].subject);
-              setSelectedGrade(found.assignments[0].grades?.[0] || '');
-            }
-          }} style={{ padding: '0.5rem', minWidth: '180px', borderRadius: '6px', border: '1px solid #ccc' }}>
+          <select value={selectedTeacherName} onChange={handleTeacherChange} style={{ padding: '0.5rem', minWidth: '180px', borderRadius: '6px', border: '1px solid #ccc' }}>
+            <option value="">Select Teacher</option>
             {teachers.map((t, i) => <option key={i} value={t.teacherName}>{t.teacherName}</option>)}
           </select>
         </div>
 
         <div>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.85rem' }}>Block:</label>
-          <select value={selectedBlock} onChange={(e) => { setSelectedBlock(e.target.value); setSelectedSubject(''); setSelectedGrade(''); }} style={{ padding: '0.5rem', minWidth: '140px', borderRadius: '6px', border: '1px solid #ccc' }}>
+          <select value={selectedBlock} onChange={(e) => { setSelectedBlock(e.target.value); setSelectedSubject(''); setSelectedGrade(''); }} style={{ padding: '0.5rem', minWidth: '140px', borderRadius: '6px', border: '1px solid #ccc' }} disabled={!selectedTeacherName}>
             <option value="">Select Block</option>
             {assignmentsList.map((a, i) => <option key={i} value={a.blockName}>{a.blockName}</option>)}
           </select>
@@ -248,10 +300,10 @@ export default function TeacherDashboard() {
           </select>
         </div>
 
-        {viewMode === 'excel' && (
+        {viewMode === 'excel' && selectedTeacherName && (
           <div style={{ marginLeft: 'auto' }}>
             <button onClick={handleExportExcel} style={{ padding: '8px 16px', background: '#00b894', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
-              📥 Download Excel Sheet
+              📥 Download Excel
             </button>
           </div>
         )}
@@ -260,8 +312,14 @@ export default function TeacherDashboard() {
       {loading && <p>Loading data...</p>}
       {message && <div style={{ background: '#d4edda', color: '#155724', padding: '10px', borderRadius: '6px', marginBottom: '1rem', fontWeight: 'bold' }} className="no-print">{message}</div>}
 
+      {!selectedTeacherName && (
+        <div style={{ textAlign: 'center', padding: '4rem', background: '#fff', borderRadius: '8px', border: '1px solid #e0e0e0', color: '#666' }}>
+          <h3>👆 Please select a teacher from the dropdown above to view tracking details.</h3>
+        </div>
+      )}
+
       {/* VIEW 1: SUMMARY DASHBOARD */}
-      {viewMode === 'summary' && dashboardData && (
+      {selectedTeacherName && viewMode === 'summary' && dashboardData && (
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
             <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '1.5rem', borderTop: '4px solid #0984e3' }}>
@@ -295,11 +353,15 @@ export default function TeacherDashboard() {
                 {dashboardData.breakdown?.map((row, i) => (
                   <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
                     <td style={{ padding: '10px', fontWeight: 'bold' }}>{row.month}</td>
-                    <td style={{ padding: '10px', fontWeight: 'bold', color: (row.ncertStatus || '').toUpperCase() === 'COMPLETED' ? '#27ae60' : '#d35400' }}>
-                      {row.ncertStatus || 'Not Started'}
+                    <td style={{ padding: '10px' }}>
+                      <span style={{ padding: '3px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold', display: 'inline-block', ...getStatusBadgeStyle(row.ncertStatus) }}>
+                        {row.ncertStatus || 'Not Started'}
+                      </span>
                     </td>
-                    <td style={{ padding: '10px', fontWeight: 'bold', color: (row.iitStatus || '').toUpperCase() === 'COMPLETED' ? '#27ae60' : '#d35400' }}>
-                      {row.iitStatus || 'Not Started'}
+                    <td style={{ padding: '10px' }}>
+                      <span style={{ padding: '3px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold', display: 'inline-block', ...getStatusBadgeStyle(row.iitStatus) }}>
+                        {row.iitStatus || 'Not Started'}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -310,10 +372,10 @@ export default function TeacherDashboard() {
       )}
 
       {/* VIEW 2: MONTHLY CARDS VIEW */}
-      {viewMode === 'cards' && (
+      {selectedTeacherName && viewMode === 'cards' && (
         <div>
           <div style={{ marginBottom: '1rem', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>
-            <h3 style={{ margin: '0', color: '#2d3436' }}>🗂️ Monthly Cards View: {selectedTeacherObj?.teacherName} — {selectedSubject} ({selectedGrade})</h3>
+            <h3 style={{ margin: '0', color: '#2d3436' }}>🗂️ Monthly Cards View: {selectedTeacherName} — {selectedSubject} ({selectedGrade})</h3>
           </div>
 
           {yearPlanRows.length === 0 ? (
@@ -368,10 +430,10 @@ export default function TeacherDashboard() {
       )}
 
       {/* VIEW 3: INTERACTIVE EXCEL SPREADSHEET */}
-      {viewMode === 'excel' && (
+      {selectedTeacherName && viewMode === 'excel' && (
         <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '1.5rem', overflowX: 'auto', boxShadow: '0 2px 4px rgba(0,0,0,0.04)' }}>
           <div style={{ marginBottom: '1rem', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>
-            <h3 style={{ margin: '0', color: '#2d3436' }}>📋 Spreadsheet View: {selectedTeacherObj?.teacherName} — {selectedSubject} ({selectedGrade})</h3>
+            <h3 style={{ margin: '0', color: '#2d3436' }}>📋 Spreadsheet View: {selectedTeacherName} — {selectedSubject} ({selectedGrade})</h3>
           </div>
 
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
