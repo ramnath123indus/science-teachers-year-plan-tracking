@@ -28,24 +28,12 @@ export default function TeacherDashboard() {
       : 'https://physics-teachers-year-plan-tracking-1.onrender.com')
   ).replace(/\/+$/, '');
 
-  // 1. Fetch teachers list on mount and default to the first teacher
+  // 1. Fetch teachers list on mount (Dropdown remains at default "Select Teacher")
   useEffect(() => {
     axios.get(`${apiHost}/api/teachers`)
       .then(res => {
         const list = res.data.teachers || res.data || [];
         setTeachers(list);
-        if (list.length > 0) {
-          const firstTeacher = list[0];
-          setSelectedTeacherName(firstTeacher.teacherName);
-          setSelectedTeacherObj(firstTeacher);
-          if (firstTeacher.assignments && firstTeacher.assignments.length > 0) {
-            setSelectedBlock(firstTeacher.assignments[0].blockName);
-            setSelectedSubject(firstTeacher.assignments[0].subject);
-            if (firstTeacher.assignments[0].grades && firstTeacher.assignments[0].grades.length > 0) {
-              setSelectedGrade(firstTeacher.assignments[0].grades[0]);
-            }
-          }
-        }
       })
       .catch(err => {
         console.error('Error loading teachers:', err);
