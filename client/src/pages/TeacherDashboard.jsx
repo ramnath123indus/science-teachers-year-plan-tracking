@@ -70,91 +70,79 @@ export default function TeacherDashboard() {
     }
   };
 
-  // 2. Fetch Summary Dashboard Data & robustly map status fields from backend
+  // 2 & 3. Fetch detailed Year Plan / Status rows whenever selection filters change
   useEffect(() => {
-    if (!selectedTeacherName) return;
+    if (!selectedTeacherName) {
+      setDashboardData(null);
+      setYearPlanRows([]);
+      return;
+    }
 
-    axios.get(`${apiHost}/api/dashboard/summary?teacherName=${encodeURIComponent(selectedTeacherName)}`)
+    setLoading(true);
+    const gradeQuery = selectedGrade ? String(selectedGrade).replace(/Grade\s*/i, '').trim() : '';
+    const teacherParam = `&teacherName=${encodeURIComponent(selectedTeacherName)}`;
+    const blockParam = selectedBlock ? `&blockName=${encodeURIComponent(selectedBlock)}` : '';
+    const subjectParam = selectedSubject ? `&subject=${encodeURIComponent(selectedSubject)}` : '';
+    const gradeParam = gradeQuery ? `&grade=${encodeURIComponent(gradeQuery)}` : '';
+
+    axios.get(`${apiHost}/api/master-plans/submit?${blockParam.replace(/^&/, '')}${subjectParam}${gradeParam}${teacherParam}`)
       .then(res => {
-        const resData = res.data || {};
-        const apiBreakdown = resData.breakdown || resData.summary || (Array.isArray(resData) ? resData : []) || [];
-        
-        const breakdownMap = {};
-        apiBreakdown.forEach(b => {
-          const mName = (b.month || b._id || '').trim().toUpperCase();
-          if (mName) breakdownMap[mName] = b;
+        const fetchedPlan = res.data.yearPlan || res.data || [];
+        const planMap = {};
+        fetchedPlan.forEach(row => {
+          if (row.month) planMap[row.month.trim().toUpperCase()] = row;
         });
 
-        const mergedBreakdown = STANDARD_MONTHS.map(m => {
-          const existing = breakdownMap[m] || {};
+        const fullSheetRows = STANDARD_MONTHS.map(monthName => {
+          const existingRow = planMap[monthName] || {};
           return {
-            month: m,
-            ncertStatus: existing.ncertStatus || existing.ncert || existing.status || existing.ncert_status || 'Not Started',
-            iitStatus: existing.iitStatus || existing.iit || existing.iit_status || 'Not Started'
+            month: monthName,
+            ncertSyllabus: existingRow.ncertSyllabus || '',
+            sec1: existingRow.sec1 || 'Not Started',
+            sec2: existingRow.sec2 || 'Not Started',
+            sec3: existingRow.sec3 || 'Not Started',
+            sec4: existingRow.sec4 || 'Not Started',
+            sec5: existingRow.sec5 || 'Not Started',
+            sec6: existingRow.sec6 || 'Not Started',
+            ncertStatus: existingRow.ncertStatus || existingRow.status || existingRow.ncert_status || 'Not Started',
+            iitSyllabus: existingRow.iitSyllabus || '',
+            iitSec1: existingRow.iitSec1 || 'Not Started',
+            iitSec2: existingRow.iitSec2 || 'Not Started',
+            iitSec3: existingRow.iitSec3 || 'Not Started',
+            iitSec4: existingRow.iitSec4 || 'Not Started',
+            iitStatus: existingRow.iitStatus || existingRow.iit_status || 'Not Started'
           };
         });
 
+        setYearPlanRows(fullSheetRows);
+
+        // Derive summary dashboard metrics directly from the fetched sheet rows to guarantee accuracy
+        const ncertCompletedCount = fullSheetRows.filter(r => r.ncertStatus.toUpperCase() === 'COMPLETED').length;
+        const iitCompletedCount = fullSheetRows.filter(r => r.iitStatus.toUpperCase() === 'COMPLETED').length;
+
         setDashboardData({
-          ncertCompleted: resData.ncertCompleted ?? mergedBreakdown.filter(r => r.ncertStatus.toUpperCase() === 'COMPLETED').length,
-          iitCompleted: resData.iitCompleted ?? mergedBreakdown.filter(r => r.iitStatus.toUpperCase() === 'COMPLETED').length,
-          breakdown: mergedBreakdown
+          ncertCompleted: ncertCompletedCount,
+          iitCompleted: iitCompletedCount,
+          breakdown: fullSheetRows.map(r => ({
+            month: r.month,
+            ncertStatus: r.ncertStatus,
+            iitStatus: r.iitStatus
+          }))
         });
+
+        setLoading(false);
       })
       .catch(err => {
-        console.error('Error loading summary dashboard:', err);
+        console.error('Error fetching sheet rows:', err);
+        const fallbackRows = STANDARD_MONTHS.map(m => ({ month: m, ncertSyllabus: '', ncertStatus: 'Not Started', iitSyllabus: '', iitStatus: 'Not Started' }));
+        setYearPlanRows(fallbackRows);
         setDashboardData({
           ncertCompleted: 0,
           iitCompleted: 0,
-          breakdown: STANDARD_MONTHS.map(m => ({ month: m, ncertStatus: 'Not Started', iitStatus: 'Not Started' }))
+          breakdown: fallbackRows
         });
+        setLoading(false);
       });
-  }, [apiHost, selectedTeacherName]);
-
-  // 3. Fetch detailed Year Plan spreadsheet / card rows when selection/filters change
-  useEffect(() => {
-    if (selectedTeacherName && selectedBlock && selectedSubject && selectedGrade) {
-      setLoading(true);
-      const gradeQuery = String(selectedGrade).replace(/Grade\s*/i, '').trim();
-      const teacherParam = `&teacherName=${encodeURIComponent(selectedTeacherName)}`;
-
-      axios.get(`${apiHost}/api/master-plans/submit?blockName=${encodeURIComponent(selectedBlock)}&subject=${encodeURIComponent(selectedSubject)}&grade=${encodeURIComponent(gradeQuery)}${teacherParam}`)
-        .then(res => {
-          const fetchedPlan = res.data.yearPlan || res.data || [];
-          const planMap = {};
-          fetchedPlan.forEach(row => {
-            if (row.month) planMap[row.month.trim().toUpperCase()] = row;
-          });
-
-          const fullSheetRows = STANDARD_MONTHS.map(monthName => {
-            const existingRow = planMap[monthName] || {};
-            return {
-              month: monthName,
-              ncertSyllabus: existingRow.ncertSyllabus || '',
-              sec1: existingRow.sec1 || 'Not Started',
-              sec2: existingRow.sec2 || 'Not Started',
-              sec3: existingRow.sec3 || 'Not Started',
-              sec4: existingRow.sec4 || 'Not Started',
-              sec5: existingRow.sec5 || 'Not Started',
-              sec6: existingRow.sec6 || 'Not Started',
-              ncertStatus: existingRow.ncertStatus || existingRow.status || existingRow.ncert_status || 'Not Started',
-              iitSyllabus: existingRow.iitSyllabus || '',
-              iitSec1: existingRow.iitSec1 || 'Not Started',
-              iitSec2: existingRow.iitSec2 || 'Not Started',
-              iitSec3: existingRow.iitSec3 || 'Not Started',
-              iitSec4: existingRow.iitSec4 || 'Not Started',
-              iitStatus: existingRow.iitStatus || existingRow.iit_status || 'Not Started'
-            };
-          });
-
-          setYearPlanRows(fullSheetRows);
-          setLoading(false);
-        })
-        .catch(err => {
-          console.error('Error fetching sheet rows:', err);
-          setYearPlanRows(STANDARD_MONTHS.map(m => ({ month: m, ncertSyllabus: '', ncertStatus: 'Not Started', iitSyllabus: '', iitStatus: 'Not Started' })));
-          setLoading(false);
-        });
-    }
   }, [apiHost, selectedTeacherName, selectedBlock, selectedSubject, selectedGrade]);
 
   const handleExportExcel = () => {
