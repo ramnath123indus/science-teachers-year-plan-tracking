@@ -51,7 +51,7 @@ export default function TeacherDashboard() {
       });
   }, [apiHost]);
 
-  // 2. Fetch Summary Dashboard Data
+  // 2. Fetch Summary Dashboard Data & fallback computation if breakdown status is missing
   useEffect(() => {
     if (!selectedTeacherObj) return;
 
@@ -106,6 +106,25 @@ export default function TeacherDashboard() {
           });
 
           setYearPlanRows(fullSheetRows);
+          
+          // Dynamically synchronize summary breakdown status if dashboardData lacks it
+          setDashboardData(prev => {
+            const breakdownWithStatus = fullSheetRows.map(r => ({
+              month: r.month,
+              ncertStatus: r.ncertStatus,
+              iitStatus: r.iitStatus
+            }));
+            const ncertCompletedCount = fullSheetRows.filter(r => (r.ncertStatus || '').toUpperCase() === 'COMPLETED').length;
+            const iitCompletedCount = fullSheetRows.filter(r => (r.iitStatus || '').toUpperCase() === 'COMPLETED').length;
+            
+            return {
+              ...(prev || {}),
+              ncertCompleted: prev?.ncertCompleted ?? ncertCompletedCount,
+              iitCompleted: prev?.iitCompleted ?? iitCompletedCount,
+              breakdown: breakdownWithStatus
+            };
+          });
+
           setLoading(false);
         })
         .catch(err => {
@@ -205,33 +224,29 @@ export default function TeacherDashboard() {
           </select>
         </div>
 
-        {(viewMode === 'excel' || viewMode === 'cards') && (
-          <>
-            <div>
-              <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.85rem' }}>Block:</label>
-              <select value={selectedBlock} onChange={(e) => { setSelectedBlock(e.target.value); setSelectedSubject(''); setSelectedGrade(''); }} style={{ padding: '0.5rem', minWidth: '140px', borderRadius: '6px', border: '1px solid #ccc' }}>
-                <option value="">Select Block</option>
-                {assignmentsList.map((a, i) => <option key={i} value={a.blockName}>{a.blockName}</option>)}
-              </select>
-            </div>
+        <div>
+          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.85rem' }}>Block:</label>
+          <select value={selectedBlock} onChange={(e) => { setSelectedBlock(e.target.value); setSelectedSubject(''); setSelectedGrade(''); }} style={{ padding: '0.5rem', minWidth: '140px', borderRadius: '6px', border: '1px solid #ccc' }}>
+            <option value="">Select Block</option>
+            {assignmentsList.map((a, i) => <option key={i} value={a.blockName}>{a.blockName}</option>)}
+          </select>
+        </div>
 
-            <div>
-              <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.85rem' }}>Subject:</label>
-              <select value={selectedSubject} onChange={(e) => { setSelectedSubject(e.target.value); setSelectedGrade(''); }} style={{ padding: '0.5rem', minWidth: '140px', borderRadius: '6px', border: '1px solid #ccc' }} disabled={!selectedBlock}>
-                <option value="">Select Subject</option>
-                {assignmentsList?.filter(a => a.blockName === selectedBlock)?.map((a, i) => <option key={i} value={a.subject}>{a.subject}</option>)}
-              </select>
-            </div>
+        <div>
+          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.85rem' }}>Subject:</label>
+          <select value={selectedSubject} onChange={(e) => { setSelectedSubject(e.target.value); setSelectedGrade(''); }} style={{ padding: '0.5rem', minWidth: '140px', borderRadius: '6px', border: '1px solid #ccc' }} disabled={!selectedBlock}>
+            <option value="">Select Subject</option>
+            {assignmentsList?.filter(a => a.blockName === selectedBlock)?.map((a, i) => <option key={i} value={a.subject}>{a.subject}</option>)}
+          </select>
+        </div>
 
-            <div>
-              <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.85rem' }}>Grade:</label>
-              <select value={selectedGrade} onChange={(e) => setSelectedGrade(e.target.value)} style={{ padding: '0.5rem', minWidth: '120px', borderRadius: '6px', border: '1px solid #ccc' }} disabled={!selectedSubject}>
-                <option value="">Select Grade</option>
-                {assignmentsList?.filter(a => a.blockName === selectedBlock && a.subject === selectedSubject)?.[0]?.grades?.map((g, i) => <option key={i} value={g}>{g}</option>)}
-              </select>
-            </div>
-          </>
-        )}
+        <div>
+          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.85rem' }}>Grade:</label>
+          <select value={selectedGrade} onChange={(e) => setSelectedGrade(e.target.value)} style={{ padding: '0.5rem', minWidth: '120px', borderRadius: '6px', border: '1px solid #ccc' }} disabled={!selectedSubject}>
+            <option value="">Select Grade</option>
+            {assignmentsList?.filter(a => a.blockName === selectedBlock && a.subject === selectedSubject)?.[0]?.grades?.map((g, i) => <option key={i} value={g}>{g}</option>)}
+          </select>
+        </div>
 
         {viewMode === 'excel' && (
           <div style={{ marginLeft: 'auto' }}>
@@ -280,8 +295,12 @@ export default function TeacherDashboard() {
                 {dashboardData.breakdown?.map((row, i) => (
                   <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
                     <td style={{ padding: '10px', fontWeight: 'bold' }}>{row.month}</td>
-                    <td style={{ padding: '10px' }}>{row.ncertStatus || 'Not Started'}</td>
-                    <td style={{ padding: '10px' }}>{row.iitStatus || 'Not Started'}</td>
+                    <td style={{ padding: '10px', fontWeight: 'bold', color: (row.ncertStatus || '').toUpperCase() === 'COMPLETED' ? '#27ae60' : '#d35400' }}>
+                      {row.ncertStatus || 'Not Started'}
+                    </td>
+                    <td style={{ padding: '10px', fontWeight: 'bold', color: (row.iitStatus || '').toUpperCase() === 'COMPLETED' ? '#27ae60' : '#d35400' }}>
+                      {row.iitStatus || 'Not Started'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
