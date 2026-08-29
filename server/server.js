@@ -4,9 +4,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import teacherRoutes from './routes/teacherRoutes.js';
 import studentRoutes from './routes/studentRoutes.js';
-import masterPlanRoutes from './routes/masterPlanRoutes.js';
 import Teacher from './models/Teacher.js';
 import authRoutes from './routes/authRoutes.js';
+import masterPlanRoutes from './routes/masterPlanRoutes.js';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -88,12 +88,19 @@ mongoose
   .then(async () => {
     console.log('✅ Connected to MongoDB successfully');
 
-    // 🔴 FORCE DROP OLD UNWANTED INDEX (Fixes "E11000 duplicate key error name_1")
+    // 🔴 FORCE DROP OLD UNWANTED INDEXES
     try {
       await mongoose.connection.collection('teachers').dropIndex('name_1');
       console.log('🧹 Successfully dropped stale name_1 index!');
     } catch (err) {
       console.log('ℹ️ Index name_1 already dropped or does not exist.');
+    }
+
+    try {
+      await mongoose.connection.collection('masteryearplans').dropIndex('blockName_1_subject_1_grade_1');
+      console.log('🧹 Successfully dropped stale blockName_1_subject_1_grade_1 index!');
+    } catch (err) {
+      console.log('ℹ️ Index blockName_1_subject_1_grade_1 already dropped or does not exist.');
     }
     
     // Start listening only after DB connection & index cleanup succeed
