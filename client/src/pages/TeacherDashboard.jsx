@@ -16,7 +16,7 @@ export default function TeacherDashboard() {
   
   const [dashboardData, setDashboardData] = useState(null);
   const [yearPlanRows, setYearPlanRows] = useState([]);
-  const [viewMode, setViewMode] = useState('summary'); // 'summary' or 'excel'
+  const [viewMode, setViewMode] = useState('summary'); // 'summary', 'cards', or 'excel'
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -69,7 +69,7 @@ export default function TeacherDashboard() {
       });
   }, [apiHost, selectedTeacherObj]);
 
-  // 3. Fetch detailed Year Plan spreadsheet rows when selection/filters change
+  // 3. Fetch detailed Year Plan spreadsheet / card rows when selection/filters change
   useEffect(() => {
     if (selectedTeacherObj && selectedBlock && selectedSubject && selectedGrade) {
       setLoading(true);
@@ -143,6 +143,16 @@ export default function TeacherDashboard() {
     setMessage('📥 Excel file downloaded successfully!');
   };
 
+  const getStatusBadgeStyle = (status) => {
+    const st = (status || '').toLowerCase();
+    if (st.includes('completed') || st === 'compliant') {
+      return { background: '#d4edda', color: '#155724', border: '1px solid #c3e6cb' };
+    } else if (st.includes('progress')) {
+      return { background: '#cce5ff', color: '#004085', border: '1px solid #b8daff' };
+    }
+    return { background: '#e2e3e5', color: '#383d41', border: '1px solid #d6d8db' };
+  };
+
   const assignmentsList = selectedTeacherObj?.assignments || [];
 
   return (
@@ -152,16 +162,22 @@ export default function TeacherDashboard() {
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2>📊 Teacher Year Plan Management Dashboard</h2>
-          <p style={{ color: '#666', margin: '0' }}>Switch between the high-level summary dashboard and the full interactive Excel sheet view.</p>
+          <p style={{ color: '#666', margin: '0' }}>Switch between the summary dashboard, monthly cards view, and the full interactive Excel sheet view.</p>
         </div>
         
         {/* View Mode Toggle Buttons */}
-        <div style={{ display: 'flex', gap: '8px', background: '#dfe6e9', padding: '4px', borderRadius: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', background: '#dfe6e9', padding: '4px', borderRadius: '8px', flexWrap: 'wrap' }}>
           <button 
             onClick={() => setViewMode('summary')}
             style={{ padding: '8px 16px', background: viewMode === 'summary' ? '#2d3436' : 'transparent', color: viewMode === 'summary' ? '#fff' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
           >
             📊 Summary Dashboard
+          </button>
+          <button 
+            onClick={() => setViewMode('cards')}
+            style={{ padding: '8px 16px', background: viewMode === 'cards' ? '#6c5ce7' : 'transparent', color: viewMode === 'cards' ? '#fff' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            🗂️ Monthly Cards View
           </button>
           <button 
             onClick={() => setViewMode('excel')}
@@ -189,7 +205,7 @@ export default function TeacherDashboard() {
           </select>
         </div>
 
-        {viewMode === 'excel' && (
+        {(viewMode === 'excel' || viewMode === 'cards') && (
           <>
             <div>
               <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.3rem', fontSize: '0.85rem' }}>Block:</label>
@@ -274,7 +290,65 @@ export default function TeacherDashboard() {
         </div>
       )}
 
-      {/* VIEW 2: INTERACTIVE EXCEL SPREADSHEET */}
+      {/* VIEW 2: MONTHLY CARDS VIEW */}
+      {viewMode === 'cards' && (
+        <div>
+          <div style={{ marginBottom: '1rem', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>
+            <h3 style={{ margin: '0', color: '#2d3436' }}>🗂️ Monthly Cards View: {selectedTeacherObj?.teacherName} — {selectedSubject} ({selectedGrade})</h3>
+          </div>
+
+          {yearPlanRows.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem', background: '#fff', borderRadius: '8px', border: '1px solid #e0e0e0', color: '#666' }}>
+              No plan data available for the selected assignment.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+              {yearPlanRows.map((item, index) => (
+                <div key={index} style={{ background: '#fff', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.06)', border: '1px solid #e0e0e0', overflow: 'hidden' }}>
+                  <div style={{ background: '#f8f9fa', padding: '12px 16px', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 'bold', color: '#2d3436', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      📅 {item.month}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: '#666', fontWeight: '500' }}>Month #{index + 1}</span>
+                  </div>
+
+                  <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem' }}>
+                    {/* NCERT Track */}
+                    <div style={{ borderBottom: '1px solid #f1f2f6', paddingBottom: '10px' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#0984e3', marginBottom: '4px', letterSpacing: '0.5px' }}>📘 NCERT TRACK</div>
+                      <div style={{ color: '#2d3436', fontWeight: '500', minHeight: '1.4rem', marginBottom: '8px' }}>
+                        {item.ncertSyllabus || <span style={{ color: '#b2bec3', fontStyle: 'italic' }}>No syllabus assigned</span>}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
+                        <span style={{ color: '#666' }}>Status:</span>
+                        <span style={{ padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', ...getStatusBadgeStyle(item.ncertStatus) }}>
+                          {item.ncertStatus || 'Not Started'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* IIT Track */}
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6c5ce7', marginBottom: '4px', letterSpacing: '0.5px' }}>🚀 IIT TRACK</div>
+                      <div style={{ color: '#2d3436', fontWeight: '500', minHeight: '1.4rem', marginBottom: '8px' }}>
+                        {item.iitSyllabus || <span style={{ color: '#b2bec3', fontStyle: 'italic' }}>No IIT syllabus assigned</span>}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
+                        <span style={{ color: '#666' }}>Status:</span>
+                        <span style={{ padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', ...getStatusBadgeStyle(item.iitStatus) }}>
+                          {item.iitStatus || 'Not Started'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VIEW 3: INTERACTIVE EXCEL SPREADSHEET */}
       {viewMode === 'excel' && (
         <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '1.5rem', overflowX: 'auto', boxShadow: '0 2px 4px rgba(0,0,0,0.04)' }}>
           <div style={{ marginBottom: '1rem', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>
