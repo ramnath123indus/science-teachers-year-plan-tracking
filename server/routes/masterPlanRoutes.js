@@ -27,7 +27,6 @@ const getPlanFromExcel = (blockName, subject, grade) => {
 
     // Find file matching block, subject, and grade dynamically
     const targetFile = files.find(file => {
-      // Clean the filename itself to remove whitespace issues or hidden characters
       const f = file.trim().toLowerCase();
       
       const matchesBlock = f.includes(cleanBlock);
@@ -78,7 +77,13 @@ const getPlanFromExcel = (blockName, subject, grade) => {
 // @desc    Get year plan entries for specific block, subject, grade, and teacher name
 router.get('/submit', async (req, res) => {
   try {
-    const { blockName, subject, grade, teacherName } = req.query;
+    // Clean and trim incoming query parameters here
+    const blockName = req.query.blockName ? req.query.blockName.trim() : '';
+    const subject = req.query.subject ? req.query.subject.trim() : '';
+    const grade = req.query.grade ? String(req.query.grade).trim() : '';
+    const teacherName = req.query.teacherName ? req.query.teacherName.trim() : '';
+
+    console.log('📥 GET /api/master-plans/submit query received:', { blockName, subject, grade, teacherName });
 
     if (!blockName || !subject || !grade) {
       return res.status(400).json({ error: 'Please provide blockName, subject, and grade.' });
