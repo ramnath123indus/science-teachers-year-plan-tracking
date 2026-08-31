@@ -13,22 +13,36 @@ const getPlanFromExcel = (blockName, subject, grade) => {
     const fallbackPath = path.join(process.cwd(), 'master-excel-files');
     
     const targetDir = fs.existsSync(folderPath) ? folderPath : (fs.existsSync(fallbackPath) ? fallbackPath : null);
-    if (!targetDir) return null;
+    if (!targetDir) {
+      console.log('⚠️ Master excel files directory not found!');
+      return null;
+    }
 
     const files = fs.readdirSync(targetDir);
     
     // Clean and normalize query inputs
-    const cleanBlock = blockName.trim().toLowerCase();
+    const cleanBlock = blockName.trim().toLowerCase().replace('block', '').trim();
     const cleanSubject = subject.trim().toLowerCase();
-    const cleanGrade = String(grade).toLowerCase().replace('grade', '').trim();
+    const cleanGrade = String(grade).replace(/\D/g, '').trim();
 
-    // Find file matching Block + Subject + Grade (e.g. General_BIOLOGY_Grade 8.xlsx or Kailash_PHYSICS_Grade 8.xlsx)
+    // Find file matching block, subject, and grade dynamically
     const targetFile = files.find(file => {
-      const f = file.toLowerCase();
-      return f.includes(cleanBlock) && f.includes(cleanSubject) && f.includes(cleanGrade);
+      // Clean the filename itself to remove whitespace issues or hidden characters
+      const f = file.trim().toLowerCase();
+      
+      const matchesBlock = f.includes(cleanBlock);
+      const matchesSubject = f.includes(cleanSubject);
+      const matchesGrade = f.includes(cleanGrade);
+
+      return matchesBlock && matchesSubject && matchesGrade;
     });
 
-    if (!targetFile) return null;
+    if (!targetFile) {
+      console.log(`⚠️ No file match found for -> Block: "${blockName}", Subject: "${subject}", Grade: "${grade}"`);
+      return null;
+    }
+
+    console.log(`✅ Successfully matched file: ${targetFile}`);
 
     const workbook = xlsx.readFile(path.join(targetDir, targetFile));
     const sheetName = workbook.SheetNames[0];
