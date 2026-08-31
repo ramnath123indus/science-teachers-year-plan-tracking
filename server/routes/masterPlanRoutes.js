@@ -9,34 +9,43 @@ const router = express.Router();
 // Helper function to read from Excel files in server/master-excel-files folder
 const getPlanFromExcel = (blockName, subject, grade) => {
   try {
-    const folderPath = path.join(process.cwd(), 'master-excel-files'); 
-    if (!fs.existsSync(folderPath)) return null;
+    const folderPath = path.join(process.cwd(), 'server', 'master-excel-files');
+    const fallbackPath = path.join(process.cwd(), 'master-excel-files');
+    
+    const targetDir = fs.existsSync(folderPath) ? folderPath : (fs.existsSync(fallbackPath) ? fallbackPath : null);
+    if (!targetDir) return null;
 
-    const files = fs.readdirSync(folderPath);
-    const targetFile = files.find(file => 
-      file.toLowerCase().includes(blockName.toLowerCase()) &&
-      file.toLowerCase().includes(subject.toLowerCase()) &&
-      file.toLowerCase().includes(grade.toLowerCase())
-    );
+    const files = fs.readdirSync(targetDir);
+    
+    // Clean and normalize query inputs
+    const cleanBlock = blockName.trim().toLowerCase();
+    const cleanSubject = subject.trim().toLowerCase();
+    const cleanGrade = String(grade).toLowerCase().replace('grade', '').trim();
+
+    // Find file matching Block + Subject + Grade (e.g. General_BIOLOGY_Grade 8.xlsx or Kailash_PHYSICS_Grade 8.xlsx)
+    const targetFile = files.find(file => {
+      const f = file.toLowerCase();
+      return f.includes(cleanBlock) && f.includes(cleanSubject) && f.includes(cleanGrade);
+    });
 
     if (!targetFile) return null;
 
-    const workbook = xlsx.readFile(path.join(folderPath, targetFile));
+    const workbook = xlsx.readFile(path.join(targetDir, targetFile));
     const sheetName = workbook.SheetNames[0];
     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-    // Map Excel rows to your yearPlan schema structure
+    // Map Excel rows to your yearPlan schema structure with exact column header matches
     const yearPlan = sheetData.map(row => ({
-      month: String(row['MONTH'] || '').trim().toUpperCase(),
-      ncertSyllabus: String(row['NCERT SYLLABUS'] || ''),
-      sec1: String(row['SEC-1'] || 'Not Started'),
-      sec2: String(row['SEC-2'] || 'Not Started'),
-      sec3: String(row['SEC-3'] || 'Not Started'),
-      sec4: String(row['SEC-4'] || 'Not Started'),
-      sec5: String(row['SEC-5'] || 'Not Started'),
-      sec6: String(row['SEC-6'] || 'Not Started'),
-      ncertStatus: String(row['NCERT STATUS'] || 'Not Started'),
-      iitSyllabus: String(row['IIT SYLLABUS'] || ''),
+      month: String(row['MONTH'] || row['Month'] || '').trim().toUpperCase(),
+      ncertSyllabus: String(row['NCERT SYLLABUS'] || row['Ncert Syllabus'] || ''),
+      sec1: String(row['NCERT_SEC-1'] || row['SEC-1'] || 'Not Started'),
+      sec2: String(row['NCERT_SEC-2'] || row['SEC-2'] || 'Not Started'),
+      sec3: String(row['NCERT_SEC-3'] || row['SEC-3'] || 'Not Started'),
+      sec4: String(row['NCERT_SEC-4'] || row['SEC-4'] || 'Not Started'),
+      sec5: String(row['NCERT_SEC-5'] || row['SEC-5'] || 'Not Started'),
+      sec6: String(row['NCERT_SEC-6'] || row['SEC-6'] || 'Not Started'),
+      ncertStatus: String(row['NCERT_STATUS'] || row['NCERT STATUS'] || 'Not Started'),
+      iitSyllabus: String(row['IIT SYLLABUS'] || row['Iit Syllabus'] || ''),
       iitSec1: String(row['IIT_SEC-1'] || 'Not Started'),
       iitSec2: String(row['IIT_SEC-2'] || 'Not Started'),
       iitSec3: String(row['IIT_SEC-3'] || 'Not Started'),
