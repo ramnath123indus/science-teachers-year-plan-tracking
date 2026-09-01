@@ -6,7 +6,7 @@ import MasterYearPlan from '../models/MasterYearPlan.js';
 
 const router = express.Router();
 
-// Helper function to read from Excel files in server/master-excel-files folder
+// Helper function to read from Excel files based on block type
 const getPlanFromExcel = (blockName, subject, grade) => {
   try {
     const folderPath = path.join(process.cwd(), 'server', 'master-excel-files');
@@ -20,20 +20,19 @@ const getPlanFromExcel = (blockName, subject, grade) => {
 
     const files = fs.readdirSync(targetDir);
     
-    // Clean and normalize query inputs with robust handling for Central/General aliases
-    let cleanBlock = blockName.trim().toLowerCase().replace('block', '').trim();
-    if (cleanBlock === 'general' || cleanBlock === 'gen') {
-      cleanBlock = 'central';
-    }
-
+    // Clean and normalize query inputs
+    const cleanBlock = blockName.trim().toLowerCase();
     const cleanSubject = subject.trim().toLowerCase();
     const cleanGrade = String(grade).replace(/\D/g, '').trim();
 
-    // Find file matching block, subject, and grade dynamically
+    // Kailash uses its own files. All other blocks share the Central files.
+    const fileBlockKey = cleanBlock.includes('kailash') ? 'kailash' : 'central';
+
+    // Find file matching block prefix, subject, and grade dynamically
     const targetFile = files.find(file => {
       const f = file.trim().toLowerCase();
       
-      const matchesBlock = f.includes(cleanBlock);
+      const matchesBlock = f.includes(fileBlockKey);
       const matchesSubject = f.includes(cleanSubject);
       const matchesGrade = f.includes(cleanGrade);
 
@@ -41,7 +40,7 @@ const getPlanFromExcel = (blockName, subject, grade) => {
     });
 
     if (!targetFile) {
-      console.log(`⚠️ No file match found for -> Block: "${blockName}" (Normalized: "${cleanBlock}"), Subject: "${subject}", Grade: "${grade}"`);
+      console.log(`⚠️ No file match found for -> Block: "${blockName}" (Key: "${fileBlockKey}"), Subject: "${subject}", Grade: "${grade}"`);
       return null;
     }
 
@@ -81,7 +80,6 @@ const getPlanFromExcel = (blockName, subject, grade) => {
 // @desc    Get year plan entries for specific block, subject, grade, and teacher name
 router.get('/submit', async (req, res) => {
   try {
-    // Clean and trim incoming query parameters here
     const blockName = req.query.blockName ? req.query.blockName.trim() : '';
     const subject = req.query.subject ? req.query.subject.trim() : '';
     const grade = req.query.grade ? String(req.query.grade).trim() : '';
