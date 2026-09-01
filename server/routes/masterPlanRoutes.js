@@ -6,7 +6,6 @@ import MasterYearPlan from '../models/MasterYearPlan.js';
 
 const router = express.Router();
 
-// Helper function to read from Excel files based on block type
 const getPlanFromExcel = (blockName, subject, grade) => {
   try {
     const folderPath = path.join(process.cwd(), 'server', 'master-excel-files');
@@ -20,15 +19,12 @@ const getPlanFromExcel = (blockName, subject, grade) => {
 
     const files = fs.readdirSync(targetDir);
     
-    // Clean and normalize query inputs
     const cleanBlock = blockName.trim().toLowerCase();
     const cleanSubject = subject.trim().toLowerCase();
     const cleanGrade = String(grade).replace(/\D/g, '').trim();
 
-    // Kailash uses its own files. All other blocks share the Central files.
     const fileBlockKey = cleanBlock.includes('kailash') ? 'kailash' : 'central';
 
-    // Find file matching block prefix, subject, and grade dynamically
     const targetFile = files.find(file => {
       const f = file.trim().toLowerCase();
       
@@ -50,23 +46,22 @@ const getPlanFromExcel = (blockName, subject, grade) => {
     const sheetName = workbook.SheetNames[0];
     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-    // Map Excel rows to your yearPlan schema structure with exact column header matches
     const yearPlan = sheetData.map(row => ({
       month: String(row['MONTH'] || row['Month'] || '').trim().toUpperCase(),
-      ncertSyllabus: String(row['NCERT SYLLABUS'] || row['Ncert Syllabus'] || ''),
-      sec1: String(row['NCERT_SEC-1'] || row['SEC-1'] || 'Not Assigned'),
-      sec2: String(row['NCERT_SEC-2'] || row['SEC-2'] || 'Not Assigned'),
-      sec3: String(row['NCERT_SEC-3'] || row['SEC-3'] || 'Not Assigned'),
-      sec4: String(row['NCERT_SEC-4'] || row['SEC-4'] || 'Not Assigned'),
-      sec5: String(row['NCERT_SEC-5'] || row['SEC-5'] || 'Not Assigned'),
-      sec6: String(row['NCERT_SEC-6'] || row['SEC-6'] || 'Not Assigned'),
-      ncertStatus: String(row['NCERT_STATUS'] || row['NCERT STATUS'] || 'Not Assigned'),
-      iitSyllabus: String(row['IIT SYLLABUS'] || row['Iit Syllabus'] || 'Not Assigned'),
-      iitSec1: String(row['IIT_SEC-1'] || 'Not Assigned'),
-      iitSec2: String(row['IIT_SEC-2'] || 'Not Assigned'),
-      iitSec3: String(row['IIT_SEC-3'] || 'Not Assigned'),
-      iitSec4: String(row['IIT_SEC-4'] || 'Not Assigned'),
-      iitStatus: String(row['IIT STATUS'] || 'Not Assigned')
+      ncertSyllabus: String(row['NCERT SYLLABUS'] || row['Ncert Syllabus'] || '').trim() || 'Not Assigned',
+      sec1: String(row['NCERT_SEC-1'] || row['SEC-1'] || '').trim() || 'Not Assigned',
+      sec2: String(row['NCERT_SEC-2'] || row['SEC-2'] || '').trim() || 'Not Assigned',
+      sec3: String(row['NCERT_SEC-3'] || row['SEC-3'] || '').trim() || 'Not Assigned',
+      sec4: String(row['NCERT_SEC-4'] || row['SEC-4'] || '').trim() || 'Not Assigned',
+      sec5: String(row['NCERT_SEC-5'] || row['SEC-5'] || '').trim() || 'Not Assigned',
+      sec6: String(row['NCERT_SEC-6'] || row['SEC-6'] || '').trim() || 'Not Assigned',
+      ncertStatus: String(row['NCERT_STATUS'] || row['NCERT STATUS'] || '').trim() || 'Not Assigned',
+      iitSyllabus: String(row['IIT SYLLABUS'] || row['Iit Syllabus'] || '').trim() || 'Not Assigned',
+      iitSec1: String(row['IIT_SEC-1'] || '').trim() || 'Not Assigned',
+      iitSec2: String(row['IIT_SEC-2'] || '').trim() || 'Not Assigned',
+      iitSec3: String(row['IIT_SEC-3'] || '').trim() || 'Not Assigned',
+      iitSec4: String(row['IIT_SEC-4'] || '').trim() || 'Not Assigned',
+      iitStatus: String(row['IIT STATUS'] || '').trim() || 'Not Assigned'
     })).filter(r => r.month && r.month !== 'UNDEFINED');
 
     return yearPlan.length > 0 ? yearPlan : null;
@@ -76,8 +71,6 @@ const getPlanFromExcel = (blockName, subject, grade) => {
   }
 };
 
-// @route   GET /api/master-plans/submit
-// @desc    Get year plan entries for specific block, subject, grade, and teacher name
 router.get('/submit', async (req, res) => {
   try {
     const blockName = req.query.blockName ? req.query.blockName.trim() : '';
@@ -96,10 +89,8 @@ router.get('/submit', async (req, res) => {
       query.teacherName = teacherName;
     }
 
-    // 1. Check MongoDB for this specific teacher + criteria
     let plan = await MasterYearPlan.findOne(query);
 
-    // 2. If not found in DB, check master Excel files folder as a fallback
     if (!plan || !plan.yearPlan || plan.yearPlan.length === 0) {
       const excelYearPlan = getPlanFromExcel(blockName, subject, grade);
       if (excelYearPlan) {
@@ -120,8 +111,6 @@ router.get('/submit', async (req, res) => {
   }
 });
 
-// @route   POST /api/master-plans/update & /submit
-// @desc    Create or update teacher-specific year plan entries
 const handleSaveOrUpdate = async (req, res) => {
   try {
     const { blockName, subject, grade, teacherName, yearPlan } = req.body;
