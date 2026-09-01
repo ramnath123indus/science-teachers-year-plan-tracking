@@ -6,6 +6,12 @@ import MasterYearPlan from '../models/MasterYearPlan.js';
 
 const router = express.Router();
 
+const cleanField = (val) => {
+  if (val === undefined || val === null) return 'Not Assigned';
+  const str = String(val).trim();
+  return (str === '' || str.toLowerCase() === 'nan') ? 'Not Assigned' : str;
+};
+
 const getPlanFromExcel = (blockName, subject, grade) => {
   try {
     const folderPath = path.join(process.cwd(), 'server', 'master-excel-files');
@@ -27,11 +33,9 @@ const getPlanFromExcel = (blockName, subject, grade) => {
 
     const targetFile = files.find(file => {
       const f = file.trim().toLowerCase();
-      
       const matchesBlock = f.includes(fileBlockKey);
       const matchesSubject = f.includes(cleanSubject);
       const matchesGrade = f.includes(cleanGrade);
-
       return matchesBlock && matchesSubject && matchesGrade;
     });
 
@@ -46,23 +50,28 @@ const getPlanFromExcel = (blockName, subject, grade) => {
     const sheetName = workbook.SheetNames[0];
     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-    const yearPlan = sheetData.map(row => ({
-      month: String(row['MONTH'] || row['Month'] || '').trim().toUpperCase(),
-      ncertSyllabus: String(row['NCERT SYLLABUS'] || row['Ncert Syllabus'] || '').trim() || 'Not Assigned',
-      sec1: String(row['NCERT_SEC-1'] || row['SEC-1'] || '').trim() || 'Not Assigned',
-      sec2: String(row['NCERT_SEC-2'] || row['SEC-2'] || '').trim() || 'Not Assigned',
-      sec3: String(row['NCERT_SEC-3'] || row['SEC-3'] || '').trim() || 'Not Assigned',
-      sec4: String(row['NCERT_SEC-4'] || row['SEC-4'] || '').trim() || 'Not Assigned',
-      sec5: String(row['NCERT_SEC-5'] || row['SEC-5'] || '').trim() || 'Not Assigned',
-      sec6: String(row['NCERT_SEC-6'] || row['SEC-6'] || '').trim() || 'Not Assigned',
-      ncertStatus: String(row['NCERT_STATUS'] || row['NCERT STATUS'] || row['Ncert Status'] || '').trim() || 'Not Assigned',
-      iitSyllabus: String(row['IIT SYLLABUS'] || row['Iit Syllabus'] || '').trim() || 'Not Assigned',
-      iitSec1: String(row['IIT_SEC-1'] || row['IIT SEC-1'] || row['IIT-SEC1'] || '').trim() || 'Not Assigned',
-      iitSec2: String(row['IIT_SEC-2'] || row['IIT SEC-2'] || row['IIT-SEC2'] || '').trim() || 'Not Assigned',
-      iitSec3: String(row['IIT_SEC-3'] || row['IIT SEC-3'] || row['IIT-SEC3'] || '').trim() || 'Not Assigned',
-      iitSec4: String(row['IIT_SEC-4'] || row['IIT SEC-4'] || row['IIT-SEC4'] || '').trim() || 'Not Assigned',
-      iitStatus: String(row['IIT STATUS'] || row['IIT_STATUS'] || row['Iit Status'] || '').trim() || 'Not Assigned'
-    })).filter(r => r.month && r.month !== 'UNDEFINED');
+    const yearPlan = sheetData.map(row => {
+      const monthVal = String(row['MONTH'] || row['Month'] || '').trim().toUpperCase();
+      if (!monthVal || monthVal === 'UNDEFINED' || monthVal === 'NAN') return null;
+
+      return {
+        month: monthVal,
+        ncertSyllabus: cleanField(row['NCERT SYLLABUS'] || row['Ncert Syllabus']),
+        sec1: cleanField(row['NCERT_SEC-1'] || row['SEC-1']),
+        sec2: cleanField(row['NCERT_SEC-2'] || row['SEC-2']),
+        sec3: cleanField(row['NCERT_SEC-3'] || row['SEC-3']),
+        sec4: cleanField(row['NCERT_SEC-4'] || row['SEC-4']),
+        sec5: cleanField(row['NCERT_SEC-5'] || row['SEC-5']),
+        sec6: cleanField(row['NCERT_SEC-6'] || row['SEC-6']),
+        ncertStatus: cleanField(row['NCERT_STATUS'] || row['NCERT STATUS'] || row['Ncert Status']),
+        iitSyllabus: cleanField(row['IIT SYLLABUS'] || row['Iit Syllabus']),
+        iitSec1: cleanField(row['IIT_SEC-1'] || row['IIT SEC-1'] || row['IIT-SEC1']),
+        iitSec2: cleanField(row['IIT_SEC-2'] || row['IIT SEC-2'] || row['IIT-SEC2']),
+        iitSec3: cleanField(row['IIT_SEC-3'] || row['IIT SEC-3'] || row['IIT-SEC3']),
+        iitSec4: cleanField(row['IIT_SEC-4'] || row['IIT SEC-4'] || row['IIT-SEC4']),
+        iitStatus: cleanField(row['IIT STATUS'] || row['IIT_STATUS'] || row['Iit Status'])
+      };
+    }).filter(r => r !== null);
 
     return yearPlan.length > 0 ? yearPlan : null;
   } catch (err) {
@@ -77,8 +86,6 @@ router.get('/submit', async (req, res) => {
     const subject = req.query.subject ? req.query.subject.trim() : '';
     const grade = req.query.grade ? String(req.query.grade).trim() : '';
     const teacherName = req.query.teacherName ? req.query.teacherName.trim() : '';
-
-    console.log('📥 GET /api/master-plans/submit query received:', { blockName, subject, grade, teacherName });
 
     if (!blockName || !subject || !grade) {
       return res.status(400).json({ error: 'Please provide blockName, subject, and grade.' });
