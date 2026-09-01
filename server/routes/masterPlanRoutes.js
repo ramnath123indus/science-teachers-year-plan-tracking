@@ -20,8 +20,12 @@ const getPlanFromExcel = (blockName, subject, grade) => {
 
     const files = fs.readdirSync(targetDir);
     
-    // Clean and normalize query inputs
-    const cleanBlock = blockName.trim().toLowerCase().replace('block', '').trim();
+    // Clean and normalize query inputs with robust handling for Central/General aliases
+    let cleanBlock = blockName.trim().toLowerCase().replace('block', '').trim();
+    if (cleanBlock === 'general' || cleanBlock === 'gen') {
+      cleanBlock = 'central';
+    }
+
     const cleanSubject = subject.trim().toLowerCase();
     const cleanGrade = String(grade).replace(/\D/g, '').trim();
 
@@ -37,7 +41,7 @@ const getPlanFromExcel = (blockName, subject, grade) => {
     });
 
     if (!targetFile) {
-      console.log(`⚠️ No file match found for -> Block: "${blockName}", Subject: "${subject}", Grade: "${grade}"`);
+      console.log(`⚠️ No file match found for -> Block: "${blockName}" (Normalized: "${cleanBlock}"), Subject: "${subject}", Grade: "${grade}"`);
       return null;
     }
 
