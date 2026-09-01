@@ -51,6 +51,21 @@ router.post('/', async (req, res) => {
   try {
     const { teacherName, assignments } = req.body;
 
+    if (!teacherName) {
+      return res.status(400).json({ error: 'Teacher name is required.' });
+    }
+
+    // 🛑 DUPLICATE CHECK: Prevent registering the same teacher name twice
+    const existingTeacher = await Teacher.findOne({ 
+      teacherName: { $regex: new RegExp(`^${teacherName.trim()}$`, 'i') } 
+    });
+
+    if (existingTeacher) {
+      return res.status(400).json({ 
+        error: `Teacher "${teacherName}" is already registered. Duplicate registrations are not allowed.` 
+      });
+    }
+
     const updatedAssignments = await Promise.all(
       (assignments || []).map(async (assignment) => {
         let compiledPlan = [];
@@ -101,7 +116,7 @@ router.post('/', async (req, res) => {
     );
 
     const newTeacher = new Teacher({
-      teacherName,
+      teacherName: teacherName.trim(),
       assignments: updatedAssignments
     });
 
