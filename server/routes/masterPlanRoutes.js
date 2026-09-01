@@ -55,13 +55,13 @@ const getPlanFromExcel = (blockName, subject, grade) => {
       sec4: String(row['NCERT_SEC-4'] || row['SEC-4'] || '').trim() || 'Not Assigned',
       sec5: String(row['NCERT_SEC-5'] || row['SEC-5'] || '').trim() || 'Not Assigned',
       sec6: String(row['NCERT_SEC-6'] || row['SEC-6'] || '').trim() || 'Not Assigned',
-      ncertStatus: String(row['NCERT_STATUS'] || row['NCERT STATUS'] || '').trim() || 'Not Assigned',
+      ncertStatus: String(row['NCERT_STATUS'] || row['NCERT STATUS'] || row['Ncert Status'] || '').trim() || 'Not Assigned',
       iitSyllabus: String(row['IIT SYLLABUS'] || row['Iit Syllabus'] || '').trim() || 'Not Assigned',
-      iitSec1: String(row['IIT_SEC-1'] || '').trim() || 'Not Assigned',
-      iitSec2: String(row['IIT_SEC-2'] || '').trim() || 'Not Assigned',
-      iitSec3: String(row['IIT_SEC-3'] || '').trim() || 'Not Assigned',
-      iitSec4: String(row['IIT_SEC-4'] || '').trim() || 'Not Assigned',
-      iitStatus: String(row['IIT STATUS'] || '').trim() || 'Not Assigned'
+      iitSec1: String(row['IIT_SEC-1'] || row['IIT SEC-1'] || row['IIT-SEC1'] || '').trim() || 'Not Assigned',
+      iitSec2: String(row['IIT_SEC-2'] || row['IIT SEC-2'] || row['IIT-SEC2'] || '').trim() || 'Not Assigned',
+      iitSec3: String(row['IIT_SEC-3'] || row['IIT SEC-3'] || row['IIT-SEC3'] || '').trim() || 'Not Assigned',
+      iitSec4: String(row['IIT_SEC-4'] || row['IIT SEC-4'] || row['IIT-SEC4'] || '').trim() || 'Not Assigned',
+      iitStatus: String(row['IIT STATUS'] || row['IIT_STATUS'] || row['Iit Status'] || '').trim() || 'Not Assigned'
     })).filter(r => r.month && r.month !== 'UNDEFINED');
 
     return yearPlan.length > 0 ? yearPlan : null;
