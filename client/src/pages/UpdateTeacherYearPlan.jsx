@@ -69,21 +69,21 @@ export default function UpdateTeacherYearPlan() {
             return {
               month: monthName,
               ncertSyllabus: existingRow.ncertSyllabus || existingRow.syllabus || '',
-              ncertStatus: existingRow.ncertStatus || existingRow.status || 'Not Started',
+              ncertStatus: existingRow.ncertStatus || existingRow.status || 'Not Assigned',
               iitSyllabus: existingRow.iitSyllabus || '',
-              iitStatus: existingRow.iitStatus || 'Not Started',
+              iitStatus: existingRow.iitStatus || 'Not Assigned',
               // NCERT sections 1 to 6 explicitly mapped
-              sec1: existingRow.sec1 || existingRow.section1 || 'Not Started',
-              sec2: existingRow.sec2 || existingRow.section2 || 'Not Started',
-              sec3: existingRow.sec3 || existingRow.section3 || 'Not Started',
-              sec4: existingRow.sec4 || existingRow.section4 || 'Not Started',
-              sec5: existingRow.sec5 || existingRow.section5 || 'Not Started',
-              sec6: existingRow.sec6 || existingRow.section6 || 'Not Started',
+              sec1: existingRow.sec1 || existingRow.section1 || 'Not Assigned',
+              sec2: existingRow.sec2 || existingRow.section2 || 'Not Assigned',
+              sec3: existingRow.sec3 || existingRow.section3 || 'Not Assigned',
+              sec4: existingRow.sec4 || existingRow.section4 || 'Not Assigned',
+              sec5: existingRow.sec5 || existingRow.section5 || 'Not Assigned',
+              sec6: existingRow.sec6 || existingRow.section6 || 'Not Assigned',
               // IIT sections 1 to 4 explicitly mapped
-              iitSec1: existingRow.iitSec1 || 'Not Started',
-              iitSec2: existingRow.iitSec2 || 'Not Started',
-              iitSec3: existingRow.iitSec3 || 'Not Started',
-              iitSec4: existingRow.iitSec4 || 'Not Started'
+              iitSec1: existingRow.iitSec1 || 'Not Assigned',
+              iitSec2: existingRow.iitSec2 || 'Not Assigned',
+              iitSec3: existingRow.iitSec3 || 'Not Assigned',
+              iitSec4: existingRow.iitSec4 || 'Not Assigned'
             };
           });
 
@@ -95,19 +95,19 @@ export default function UpdateTeacherYearPlan() {
           const fallbackPlan = STANDARD_MONTHS.map(monthName => ({
             month: monthName,
             ncertSyllabus: '',
-            ncertStatus: 'Not Started',
+            ncertStatus: 'Not Assigned',
             iitSyllabus: '',
-            iitStatus: 'Not Started',
-            sec1: 'Not Started',
-            sec2: 'Not Started',
-            sec3: 'Not Started',
-            sec4: 'Not Started',
-            sec5: 'Not Started',
-            sec6: 'Not Started',
-            iitSec1: 'Not Started',
-            iitSec2: 'Not Started',
-            iitSec3: 'Not Started',
-            iitSec4: 'Not Started'
+            iitStatus: 'Not Assigned',
+            sec1: 'Not Assigned',
+            sec2: 'Not Assigned',
+            sec3: 'Not Assigned',
+            sec4: 'Not Assigned',
+            sec5: 'Not Assigned',
+            sec6: 'Not Assigned',
+            iitSec1: 'Not Assigned',
+            iitSec2: 'Not Assigned',
+            iitSec3: 'Not Assigned',
+            iitSec4: 'Not Assigned'
           }));
           setYearPlan(fallbackPlan);
           setLoading(false);
@@ -161,23 +161,22 @@ export default function UpdateTeacherYearPlan() {
     setMessage('');
 
     try {
-      // Clean and structure every property explicitly so backend receives all columns
       const sanitizedYearPlan = yearPlan.map(row => ({
         month: row.month,
         ncertSyllabus: row.ncertSyllabus || '',
-        sec1: row.sec1 || 'Not Started',
-        sec2: row.sec2 || 'Not Started',
-        sec3: row.sec3 || 'Not Started',
-        sec4: row.sec4 || 'Not Started',
-        sec5: row.sec5 || 'Not Started',
-        sec6: row.sec6 || 'Not Started',
-        ncertStatus: row.ncertStatus || 'Not Started',
+        sec1: row.sec1 || 'Not Assigned',
+        sec2: row.sec2 || 'Not Assigned',
+        sec3: row.sec3 || 'Not Assigned',
+        sec4: row.sec4 || 'Not Assigned',
+        sec5: row.sec5 || 'Not Assigned',
+        sec6: row.sec6 || 'Not Assigned',
+        ncertStatus: row.ncertStatus || 'Not Assigned',
         iitSyllabus: row.iitSyllabus || '',
-        iitSec1: row.iitSec1 || 'Not Started',
-        iitSec2: row.iitSec2 || 'Not Started',
-        iitSec3: row.iitSec3 || 'Not Started',
-        iitSec4: row.iitSec4 || 'Not Started',
-        iitStatus: row.iitStatus || 'Not Started'
+        iitSec1: row.iitSec1 || 'Not Assigned',
+        iitSec2: row.iitSec2 || 'Not Assigned',
+        iitSec3: row.iitSec3 || 'Not Assigned',
+        iitSec4: row.iitSec4 || 'Not Assigned',
+        iitStatus: row.iitStatus || 'Not Assigned'
       }));
 
       const payload = {
@@ -233,8 +232,8 @@ export default function UpdateTeacherYearPlan() {
 
   const getDropdownStyle = (val) => {
     const upper = val ? val.trim().toUpperCase() : '';
-    let bg = '#fff';
-    let color = '#000';
+    let bg = '#f5f5f5';
+    let color = '#616161';
 
     if (upper === 'COMPLETED') {
       bg = '#e8f5e9';
@@ -242,9 +241,6 @@ export default function UpdateTeacherYearPlan() {
     } else if (upper.includes('PROCESS') || upper.includes('PROGRESS')) {
       bg = '#fffde7';
       color = '#f57f17';
-    } else {
-      bg = '#f5f5f5';
-      color = '#616161';
     }
 
     return {
@@ -376,12 +372,12 @@ export default function UpdateTeacherYearPlan() {
                       {['sec1', 'sec2', 'sec3', 'sec4', 'sec5', 'sec6'].map((secField) => (
                         <td key={secField} style={{ padding: '6px', border: '1px solid #ddd' }}>
                           <select
-                            value={row[secField] || 'Not Started'}
+                            value={row[secField] || 'Not Assigned'}
                             disabled={mode === 'view'}
                             onChange={(e) => handleInputChange(index, secField, e.target.value)}
                             style={getDropdownStyle(row[secField])}
                           >
-                            <option value="Not Started">Not Started</option>
+                            <option value="Not Assigned">Not Assigned</option>
                             <option value="IN PROCESS">IN PROCESS</option>
                             <option value="COMPLETED">COMPLETED</option>
                           </select>
@@ -391,12 +387,12 @@ export default function UpdateTeacherYearPlan() {
                       {/* NCERT Status */}
                       <td style={{ padding: '6px', border: '1px solid #ddd' }}>
                         <select
-                          value={row.ncertStatus || 'Not Started'}
+                          value={row.ncertStatus || 'Not Assigned'}
                           disabled={mode === 'view'}
                           onChange={(e) => handleInputChange(index, 'ncertStatus', e.target.value)}
                           style={getDropdownStyle(row.ncertStatus)}
                         >
-                          <option value="Not Started">Not Started</option>
+                          <option value="Not Assigned">Not Assigned</option>
                           <option value="IN PROCESS">IN PROCESS</option>
                           <option value="COMPLETED">COMPLETED</option>
                         </select>
@@ -417,12 +413,12 @@ export default function UpdateTeacherYearPlan() {
                       {['iitSec1', 'iitSec2', 'iitSec3', 'iitSec4'].map((iitSecField) => (
                         <td key={iitSecField} style={{ padding: '6px', border: '1px solid #ddd' }}>
                           <select
-                            value={row[iitSecField] || 'Not Started'}
+                            value={row[iitSecField] || 'Not Assigned'}
                             disabled={mode === 'view'}
                             onChange={(e) => handleInputChange(index, iitSecField, e.target.value)}
                             style={getDropdownStyle(row[iitSecField])}
                           >
-                            <option value="Not Started">Not Started</option>
+                            <option value="Not Assigned">Not Assigned</option>
                             <option value="IN PROCESS">IN PROCESS</option>
                             <option value="COMPLETED">COMPLETED</option>
                           </select>
@@ -432,12 +428,12 @@ export default function UpdateTeacherYearPlan() {
                       {/* IIT Status */}
                       <td style={{ padding: '6px', border: '1px solid #ddd' }}>
                         <select
-                          value={row.iitStatus || 'Not Started'}
+                          value={row.iitStatus || 'Not Assigned'}
                           disabled={mode === 'view'}
                           onChange={(e) => handleInputChange(index, 'iitStatus', e.target.value)}
                           style={getDropdownStyle(row.iitStatus)}
                         >
-                          <option value="Not Started">Not Started</option>
+                          <option value="Not Assigned">Not Assigned</option>
                           <option value="IN PROCESS">IN PROCESS</option>
                           <option value="COMPLETED">COMPLETED</option>
                         </select>
