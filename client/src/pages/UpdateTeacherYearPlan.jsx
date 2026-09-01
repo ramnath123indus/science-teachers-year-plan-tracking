@@ -66,11 +66,16 @@ export default function UpdateTeacherYearPlan() {
 
           const processedPlan = STANDARD_MONTHS.map(monthName => {
             const existingRow = planMap[monthName] || {};
+            
+            // Ensure syllabus fields stay empty if they contain "Not Assigned" or are empty
+            const cleanNcertSyl = existingRow.ncertSyllabus || existingRow.syllabus || '';
+            const cleanIitSyl = existingRow.iitSyllabus || '';
+
             return {
               month: monthName,
-              ncertSyllabus: existingRow.ncertSyllabus || existingRow.syllabus || '',
+              ncertSyllabus: cleanNcertSyl === 'Not Assigned' ? '' : cleanNcertSyl,
               ncertStatus: existingRow.ncertStatus || existingRow.status || 'Not Assigned',
-              iitSyllabus: existingRow.iitSyllabus || '',
+              iitSyllabus: cleanIitSyl === 'Not Assigned' ? '' : cleanIitSyl,
               iitStatus: existingRow.iitStatus || 'Not Assigned',
               // NCERT sections 1 to 6 explicitly mapped
               sec1: existingRow.sec1 || existingRow.section1 || 'Not Assigned',
@@ -163,7 +168,7 @@ export default function UpdateTeacherYearPlan() {
     try {
       const sanitizedYearPlan = yearPlan.map(row => ({
         month: row.month,
-        ncertSyllabus: row.ncertSyllabus || '',
+        ncertSyllabus: row.ncertSyllabus === 'Not Assigned' ? '' : (row.ncertSyllabus || ''),
         sec1: row.sec1 || 'Not Assigned',
         sec2: row.sec2 || 'Not Assigned',
         sec3: row.sec3 || 'Not Assigned',
@@ -171,7 +176,7 @@ export default function UpdateTeacherYearPlan() {
         sec5: row.sec5 || 'Not Assigned',
         sec6: row.sec6 || 'Not Assigned',
         ncertStatus: row.ncertStatus || 'Not Assigned',
-        iitSyllabus: row.iitSyllabus || '',
+        iitSyllabus: row.iitSyllabus === 'Not Assigned' ? '' : (row.iitSyllabus || ''),
         iitSec1: row.iitSec1 || 'Not Assigned',
         iitSec2: row.iitSec2 || 'Not Assigned',
         iitSec3: row.iitSec3 || 'Not Assigned',
