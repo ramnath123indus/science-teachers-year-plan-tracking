@@ -54,19 +54,19 @@ const getPlanFromExcel = (blockName, subject, grade) => {
     const yearPlan = sheetData.map(row => ({
       month: String(row['MONTH'] || row['Month'] || '').trim().toUpperCase(),
       ncertSyllabus: String(row['NCERT SYLLABUS'] || row['Ncert Syllabus'] || ''),
-      sec1: String(row['NCERT_SEC-1'] || row['SEC-1'] || 'Not Started'),
-      sec2: String(row['NCERT_SEC-2'] || row['SEC-2'] || 'Not Started'),
-      sec3: String(row['NCERT_SEC-3'] || row['SEC-3'] || 'Not Started'),
-      sec4: String(row['NCERT_SEC-4'] || row['SEC-4'] || 'Not Started'),
-      sec5: String(row['NCERT_SEC-5'] || row['SEC-5'] || 'Not Started'),
-      sec6: String(row['NCERT_SEC-6'] || row['SEC-6'] || 'Not Started'),
-      ncertStatus: String(row['NCERT_STATUS'] || row['NCERT STATUS'] || 'Not Started'),
-      iitSyllabus: String(row['IIT SYLLABUS'] || row['Iit Syllabus'] || ''),
-      iitSec1: String(row['IIT_SEC-1'] || 'Not Started'),
-      iitSec2: String(row['IIT_SEC-2'] || 'Not Started'),
-      iitSec3: String(row['IIT_SEC-3'] || 'Not Started'),
-      iitSec4: String(row['IIT_SEC-4'] || 'Not Started'),
-      iitStatus: String(row['IIT STATUS'] || 'Not Started')
+      sec1: String(row['NCERT_SEC-1'] || row['SEC-1'] || 'Not Assigned'),
+      sec2: String(row['NCERT_SEC-2'] || row['SEC-2'] || 'Not Assigned'),
+      sec3: String(row['NCERT_SEC-3'] || row['SEC-3'] || 'Not Assigned'),
+      sec4: String(row['NCERT_SEC-4'] || row['SEC-4'] || 'Not Assigned'),
+      sec5: String(row['NCERT_SEC-5'] || row['SEC-5'] || 'Not Assigned'),
+      sec6: String(row['NCERT_SEC-6'] || row['SEC-6'] || 'Not Assigned'),
+      ncertStatus: String(row['NCERT_STATUS'] || row['NCERT STATUS'] || 'Not Assigned'),
+      iitSyllabus: String(row['IIT SYLLABUS'] || row['Iit Syllabus'] || 'Not Assigned'),
+      iitSec1: String(row['IIT_SEC-1'] || 'Not Assigned'),
+      iitSec2: String(row['IIT_SEC-2'] || 'Not Assigned'),
+      iitSec3: String(row['IIT_SEC-3'] || 'Not Assigned'),
+      iitSec4: String(row['IIT_SEC-4'] || 'Not Assigned'),
+      iitStatus: String(row['IIT STATUS'] || 'Not Assigned')
     })).filter(r => r.month && r.month !== 'UNDEFINED');
 
     return yearPlan.length > 0 ? yearPlan : null;
