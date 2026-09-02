@@ -67,7 +67,6 @@ export default function UpdateTeacherYearPlan() {
           const processedPlan = STANDARD_MONTHS.map(monthName => {
             const existingRow = planMap[monthName] || {};
             
-            // Ensure syllabus fields stay empty if they contain "Not Assigned" or are empty
             const cleanNcertSyl = existingRow.ncertSyllabus || existingRow.syllabus || '';
             const cleanIitSyl = existingRow.iitSyllabus || '';
 
@@ -77,14 +76,12 @@ export default function UpdateTeacherYearPlan() {
               ncertStatus: existingRow.ncertStatus || existingRow.status || 'Not Assigned',
               iitSyllabus: cleanIitSyl === 'Not Assigned' ? '' : cleanIitSyl,
               iitStatus: existingRow.iitStatus || 'Not Assigned',
-              // NCERT sections 1 to 6 explicitly mapped
               sec1: existingRow.sec1 || existingRow.section1 || 'Not Assigned',
               sec2: existingRow.sec2 || existingRow.section2 || 'Not Assigned',
               sec3: existingRow.sec3 || existingRow.section3 || 'Not Assigned',
               sec4: existingRow.sec4 || existingRow.section4 || 'Not Assigned',
               sec5: existingRow.sec5 || existingRow.section5 || 'Not Assigned',
               sec6: existingRow.sec6 || existingRow.section6 || 'Not Assigned',
-              // IIT sections 1 to 4 explicitly mapped
               iitSec1: existingRow.iitSec1 || 'Not Assigned',
               iitSec2: existingRow.iitSec2 || 'Not Assigned',
               iitSec3: existingRow.iitSec3 || 'Not Assigned',
@@ -336,7 +333,7 @@ export default function UpdateTeacherYearPlan() {
                 <tr style={{ background: '#2d3436', color: '#fff', textAlign: 'center' }}>
                   <th style={{ padding: '10px', border: '1px solid #ddd' }}>#</th>
                   <th style={{ padding: '10px', border: '1px solid #ddd' }}>MONTH</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd', background: '#192a56' }}>NCERT SYLLABUS</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd', background: '#192a56', minWidth: '260px' }}>NCERT SYLLABUS</th>
                   <th style={{ padding: '10px', border: '1px solid #ddd' }}>SEC-1</th>
                   <th style={{ padding: '10px', border: '1px solid #ddd' }}>SEC-2</th>
                   <th style={{ padding: '10px', border: '1px solid #ddd' }}>SEC-3</th>
@@ -344,7 +341,7 @@ export default function UpdateTeacherYearPlan() {
                   <th style={{ padding: '10px', border: '1px solid #ddd' }}>SEC-5</th>
                   <th style={{ padding: '10px', border: '1px solid #ddd' }}>SEC-6</th>
                   <th style={{ padding: '10px', border: '1px solid #ddd', background: '#192a56' }}>NCERT STATUS</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd', background: '#273c75' }}>IIT SYLLABUS</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd', background: '#273c75', minWidth: '260px' }}>IIT SYLLABUS</th>
                   <th style={{ padding: '10px', border: '1px solid #ddd' }}>IIT_SEC-1</th>
                   <th style={{ padding: '10px', border: '1px solid #ddd' }}>IIT_SEC-2</th>
                   <th style={{ padding: '10px', border: '1px solid #ddd' }}>IIT_SEC-3</th>
@@ -362,14 +359,25 @@ export default function UpdateTeacherYearPlan() {
                         {row.month}
                       </td>
 
-                      {/* NCERT Syllabus */}
-                      <td style={{ padding: '6px', border: '1px solid #ddd' }}>
-                        <input 
-                          type="text" 
+                      {/* NCERT Syllabus (Textarea for full visible lesson info) */}
+                      <td style={{ padding: '6px', border: '1px solid #ddd', minWidth: '260px' }}>
+                        <textarea 
                           value={row.ncertSyllabus || ''} 
                           disabled={mode === 'view'}
+                          rows={2}
                           onChange={(e) => handleInputChange(index, 'ncertSyllabus', e.target.value)}
-                          style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', background: mode === 'view' ? '#f9f9f9' : '#fff' }}
+                          style={{ 
+                            width: '100%', 
+                            padding: '6px', 
+                            borderRadius: '4px', 
+                            border: '1px solid #ccc', 
+                            boxSizing: 'border-box', 
+                            background: mode === 'view' ? '#f9f9f9' : '#fff',
+                            resize: 'vertical',
+                            fontFamily: 'inherit',
+                            fontSize: '0.82rem',
+                            lineHeight: '1.2'
+                          }}
                         />
                       </td>
 
@@ -403,14 +411,25 @@ export default function UpdateTeacherYearPlan() {
                         </select>
                       </td>
 
-                      {/* IIT Syllabus */}
-                      <td style={{ padding: '6px', border: '1px solid #ddd' }}>
-                        <input 
-                          type="text" 
+                      {/* IIT Syllabus (Textarea for full visible lesson info) */}
+                      <td style={{ padding: '6px', border: '1px solid #ddd', minWidth: '260px' }}>
+                        <textarea 
                           value={row.iitSyllabus || ''} 
                           disabled={mode === 'view'}
+                          rows={2}
                           onChange={(e) => handleInputChange(index, 'iitSyllabus', e.target.value)}
-                          style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', background: mode === 'view' ? '#f9f9f9' : '#fff' }}
+                          style={{ 
+                            width: '100%', 
+                            padding: '6px', 
+                            borderRadius: '4px', 
+                            border: '1px solid #ccc', 
+                            boxSizing: 'border-box', 
+                            background: mode === 'view' ? '#f9f9f9' : '#fff',
+                            resize: 'vertical',
+                            fontFamily: 'inherit',
+                            fontSize: '0.82rem',
+                            lineHeight: '1.2'
+                          }}
                         />
                       </td>
 
