@@ -190,7 +190,7 @@ export default function UpdateTeacherYearPlan() {
       };
 
       await axios.post(`${apiHost}/api/master-plans/update`, payload);
-      setMessage('✅ Year plan saved successfully with all columns!');
+      setMessage('✅ Year plan saved successfully with all dropdown statuses!');
       setMode('view');
     } catch (err) {
       console.error('Error saving year plan:', err);
@@ -247,20 +247,23 @@ export default function UpdateTeacherYearPlan() {
 
     return {
       width: '100%',
-      padding: '6px',
+      minWidth: '135px',
+      padding: '6px 4px',
       borderRadius: '4px',
       border: '1px solid #ccc',
       background: bg,
       fontWeight: 'bold',
       color: color,
-      fontSize: '0.85rem'
+      fontSize: '0.8rem',
+      textAlign: 'center',
+      textOverflow: 'ellipsis'
     };
   };
 
   const assignmentsList = selectedTeacherObj?.assignments || [];
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'Segoe UI, sans-serif', maxWidth: '1550px', margin: '0 auto' }}>
+    <div style={{ padding: '2rem', fontFamily: 'Segoe UI, sans-serif', maxWidth: '1750px', margin: '0 auto' }}>
       <h2>📝 Teacher Year Plan Management (Dual-Track Excel Format)</h2>
 
       {/* Filter Controls */}
@@ -333,20 +336,20 @@ export default function UpdateTeacherYearPlan() {
                 <tr style={{ background: '#2d3436', color: '#fff', textAlign: 'center' }}>
                   <th style={{ padding: '10px', border: '1px solid #ddd' }}>#</th>
                   <th style={{ padding: '10px', border: '1px solid #ddd' }}>MONTH</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd', background: '#192a56', minWidth: '260px' }}>NCERT SYLLABUS</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>SEC-1</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>SEC-2</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>SEC-3</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>SEC-4</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>SEC-5</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>SEC-6</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd', background: '#192a56' }}>NCERT STATUS</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd', background: '#273c75', minWidth: '260px' }}>IIT SYLLABUS</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>IIT_SEC-1</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>IIT_SEC-2</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>IIT_SEC-3</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd' }}>IIT_SEC-4</th>
-                  <th style={{ padding: '10px', border: '1px solid #ddd', background: '#273c75' }}>IIT STATUS</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd', background: '#192a56', minWidth: '240px' }}>NCERT SYLLABUS</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd', minWidth: '145px' }}>SEC-1</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd', minWidth: '145px' }}>SEC-2</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd', minWidth: '145px' }}>SEC-3</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd', minWidth: '145px' }}>SEC-4</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd', minWidth: '145px' }}>SEC-5</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd', minWidth: '145px' }}>SEC-6</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd', background: '#192a56', minWidth: '145px' }}>NCERT STATUS</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd', background: '#273c75', minWidth: '240px' }}>IIT SYLLABUS</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd', minWidth: '145px' }}>IIT_SEC-1</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd', minWidth: '145px' }}>IIT_SEC-2</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd', minWidth: '145px' }}>IIT_SEC-3</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd', minWidth: '145px' }}>IIT_SEC-4</th>
+                  <th style={{ padding: '10px', border: '1px solid #ddd', background: '#273c75', minWidth: '145px' }}>IIT STATUS</th>
                 </tr>
               </thead>
               <tbody>
@@ -359,8 +362,8 @@ export default function UpdateTeacherYearPlan() {
                         {row.month}
                       </td>
 
-                      {/* NCERT Syllabus (Textarea for full visible lesson info) */}
-                      <td style={{ padding: '6px', border: '1px solid #ddd', minWidth: '260px' }}>
+                      {/* NCERT Syllabus */}
+                      <td style={{ padding: '6px', border: '1px solid #ddd', minWidth: '240px' }}>
                         <textarea 
                           value={row.ncertSyllabus || ''} 
                           disabled={mode === 'view'}
@@ -381,9 +384,9 @@ export default function UpdateTeacherYearPlan() {
                         />
                       </td>
 
-                      {/* NCERT Sections 1-6 */}
+                      {/* NCERT Sections 1-6 (Dropdowns) */}
                       {['sec1', 'sec2', 'sec3', 'sec4', 'sec5', 'sec6'].map((secField) => (
-                        <td key={secField} style={{ padding: '6px', border: '1px solid #ddd' }}>
+                        <td key={secField} style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'center' }}>
                           <select
                             value={row[secField] || 'Not Assigned'}
                             disabled={mode === 'view'}
@@ -398,7 +401,7 @@ export default function UpdateTeacherYearPlan() {
                       ))}
 
                       {/* NCERT Status */}
-                      <td style={{ padding: '6px', border: '1px solid #ddd' }}>
+                      <td style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'center' }}>
                         <select
                           value={row.ncertStatus || 'Not Assigned'}
                           disabled={mode === 'view'}
@@ -411,8 +414,8 @@ export default function UpdateTeacherYearPlan() {
                         </select>
                       </td>
 
-                      {/* IIT Syllabus (Textarea for full visible lesson info) */}
-                      <td style={{ padding: '6px', border: '1px solid #ddd', minWidth: '260px' }}>
+                      {/* IIT Syllabus */}
+                      <td style={{ padding: '6px', border: '1px solid #ddd', minWidth: '240px' }}>
                         <textarea 
                           value={row.iitSyllabus || ''} 
                           disabled={mode === 'view'}
@@ -433,9 +436,9 @@ export default function UpdateTeacherYearPlan() {
                         />
                       </td>
 
-                      {/* IIT Sections 1-4 */}
+                      {/* IIT Sections 1-4 (Dropdowns) */}
                       {['iitSec1', 'iitSec2', 'iitSec3', 'iitSec4'].map((iitSecField) => (
-                        <td key={iitSecField} style={{ padding: '6px', border: '1px solid #ddd' }}>
+                        <td key={iitSecField} style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'center' }}>
                           <select
                             value={row[iitSecField] || 'Not Assigned'}
                             disabled={mode === 'view'}
@@ -450,7 +453,7 @@ export default function UpdateTeacherYearPlan() {
                       ))}
 
                       {/* IIT Status */}
-                      <td style={{ padding: '6px', border: '1px solid #ddd' }}>
+                      <td style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'center' }}>
                         <select
                           value={row.iitStatus || 'Not Assigned'}
                           disabled={mode === 'view'}
