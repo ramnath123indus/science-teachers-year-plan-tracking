@@ -29,7 +29,8 @@ const getPlanFromExcel = (blockName, subject, grade) => {
     const cleanSubject = subject.trim().toLowerCase();
     const cleanGrade = String(grade).replace(/\D/g, '').trim();
 
-    const fileBlockKey = cleanBlock.includes('kailash') ? 'kailash' : 'central';
+    // ✅ Map Himadri(i) to use Kailash excel files
+    const fileBlockKey = (cleanBlock.includes('kailash') || cleanBlock.includes('himadri(i)')) ? 'kailash' : 'central';
 
     const targetFile = files.find(file => {
       const f = file.trim().toLowerCase();
@@ -98,6 +99,16 @@ router.get('/submit', async (req, res) => {
 
     let plan = await MasterYearPlan.findOne(query);
 
+    // ✅ If Himadri(i) has no plan in DB, try falling back to Kailash's DB plan first
+    if ((!plan || !plan.yearPlan || plan.yearPlan.length === 0) && blockName === 'Himadri(i)') {
+      const kailashQuery = { ...query, blockName: 'Kailash' };
+      const kailashPlan = await MasterYearPlan.findOne(kailashQuery);
+      if (kailashPlan && kailashPlan.yearPlan && kailashPlan.yearPlan.length > 0) {
+        plan = { ...kailashPlan.toObject(), blockName: 'Himadri(i)' };
+      }
+    }
+
+    // If still no plan, fall back to Excel file matching (which now redirects Himadri(i) to Kailash files)
     if (!plan || !plan.yearPlan || plan.yearPlan.length === 0) {
       const excelYearPlan = getPlanFromExcel(blockName, subject, grade);
       if (excelYearPlan) {
