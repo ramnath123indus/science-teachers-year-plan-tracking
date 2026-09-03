@@ -29,7 +29,7 @@ const getPlanFromExcel = (blockName, subject, grade) => {
     const cleanSubject = subject.trim().toLowerCase();
     const cleanGrade = String(grade).replace(/\D/g, '').trim();
 
-    // ✅ Map Himadri(i) to use Kailash excel files
+    // Map Himadri(i) to use Kailash excel files
     const fileBlockKey = (cleanBlock.includes('kailash') || cleanBlock.includes('himadri(i)')) ? 'kailash' : 'central';
 
     const targetFile = files.find(file => {
@@ -44,8 +44,6 @@ const getPlanFromExcel = (blockName, subject, grade) => {
       console.log(`⚠️ No file match found for -> Block: "${blockName}" (Key: "${fileBlockKey}"), Subject: "${subject}", Grade: "${grade}"`);
       return null;
     }
-
-    console.log(`✅ Successfully matched file: ${targetFile}`);
 
     const workbook = xlsx.readFile(path.join(targetDir, targetFile));
     const sheetName = workbook.SheetNames[0];
@@ -83,40 +81,37 @@ const getPlanFromExcel = (blockName, subject, grade) => {
 
 router.get('/submit', async (req, res) => {
   try {
-    const blockName = req.query.blockName ? req.query.blockName.trim() : '';
+    const rawBlockName = req.query.blockName ? req.query.blockName.trim() : '';
     const subject = req.query.subject ? req.query.subject.trim() : '';
     const grade = req.query.grade ? String(req.query.grade).trim() : '';
     const teacherName = req.query.teacherName ? req.query.teacherName.trim() : '';
 
-    if (!blockName || !subject || !grade) {
-      return res.status(400).json({ error: 'Please provide blockName, subject, and grade.' });
+    if (!rawBlockName || !subject || !grade || !teacherName) {
+      return res.status(400).json({ error: 'Please provide blockName, subject, grade, and teacherName.' });
     }
 
-    const query = { blockName, subject, grade };
-    if (teacherName) {
-      query.teacherName = teacherName;
-    }
-
+    // 1. First, check if a dedicated plan exists for the exact requested block and teacher
+    let query = { blockName: rawBlockName, subject, grade, teacherName };
     let plan = await MasterYearPlan.findOne(query);
 
-    // ✅ If Himadri(i) has no plan in DB, try falling back to Kailash's DB plan first
-    if ((!plan || !plan.yearPlan || plan.yearPlan.length === 0) && blockName === 'Himadri(i)') {
-      const kailashQuery = { ...query, blockName: 'Kailash' };
-      const kailashPlan = await MasterYearPlan.findOne(kailashQuery);
+    // 2. If Himadri(i) has no plan yet for this specific teacher, check if Kailash has a saved plan for THIS SAME teacher
+    if ((!plan || !plan.yearPlan || plan.yearPlan.length === 0) && rawBlockName.toLowerCase() === 'himadri(i)') {
+      const kailashPlan = await MasterYearPlan.findOne({ blockName: 'Kailash', subject, grade, teacherName });
       if (kailashPlan && kailashPlan.yearPlan && kailashPlan.yearPlan.length > 0) {
         plan = { ...kailashPlan.toObject(), blockName: 'Himadri(i)' };
       }
     }
 
-    // If still no plan, fall back to Excel file matching (which now redirects Himadri(i) to Kailash files)
+    // 3. If still nothing found in DB, pull from Excel matching
     if (!plan || !plan.yearPlan || plan.yearPlan.length === 0) {
-      const excelYearPlan = getPlanFromExcel(blockName, subject, grade);
+      const targetExcelBlock = rawBlockName.toLowerCase() === 'himadri(i)' ? 'Kailash' : rawBlockName;
+      const excelYearPlan = getPlanFromExcel(targetExcelBlock, subject, grade);
       if (excelYearPlan) {
         plan = {
-          blockName,
+          blockName: rawBlockName,
           subject,
           grade,
-          teacherName: teacherName || 'Unassigned',
+          teacherName,
           yearPlan: excelYearPlan
         };
       }
@@ -139,13 +134,29 @@ const handleSaveOrUpdate = async (req, res) => {
 
     const query = { blockName, subject, grade, teacherName };
 
+    // Update or insert the primary block plan for this specific teacher without duplication
     const updatedPlan = await MasterYearPlan.findOneAndUpdate(
       query,
       { blockName, subject, grade, teacherName, yearPlan },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
 
-    res.json({ message: '✅ Teacher year plan saved successfully!', updatedPlan });
+    // Synchronize between Kailash and Himadri(i) ONLY for this specific teacher
+    if (blockName.toLowerCase() === 'kailash') {
+      await MasterYearPlan.findOneAndUpdate(
+        { blockName: 'Himadri(i)', subject, grade, teacherName },
+        { blockName: 'Himadri(i)', subject, grade, teacherName, yearPlan },
+        { upsert: true }
+      );
+    } else if (blockName.toLowerCase() === 'himadri(i)') {
+      await MasterYearPlan.findOneAndUpdate(
+        { blockName: 'Kailash', subject, grade, teacherName },
+        { blockName: 'Kailash', subject, grade, teacherName, yearPlan },
+        { upsert: true }
+      );
+    }
+
+    res.json({ message: '✅ Teacher year plan saved and synchronized cleanly!', updatedPlan });
   } catch (err) {
     console.error('Error saving master plan:', err);
     res.status(500).json({ error: err.message });
